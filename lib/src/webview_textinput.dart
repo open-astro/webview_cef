@@ -3,6 +3,12 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 mixin WebeViewTextInput implements DeltaTextInputClient {
+  // [open-astro fork] Flutter added TextInputClient.onFocusReceived after
+  // webview_cef 0.2.2 (returns bool); the upstream mixin predates it, which made
+  // WebViewState fail to compile against Flutter 3.44+. No-op shim to satisfy it.
+  @override
+  bool onFocusReceived() => false;
+
   @override
   TextEditingValue? currentTextEditingValue;
 

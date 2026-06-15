@@ -1,3 +1,11 @@
+> **open-astro fork.** Maintained by the OpenAstro Ara project as a patched line of
+> [hlwhl/webview_cef](https://github.com/hlwhl/webview_cef). Upstream's last release
+> (0.2.2) and its `main` no longer compile against Flutter 3.44+ — Flutter added
+> `TextInputClient.onFocusReceived`, which the text-input mixin predates. This fork
+> carries that shim (and any further Flutter-compat shims OpenAstro Ara needs). We do
+> not track upstream; cherry-pick from it only if it revives. See the §36 Sky Atlas
+> embed in the openastro-ara repo.
+
 # WebView CEF
 
 <a href="https://pub.dev/packages/webview_cef"><img src="https://img.shields.io/pub/likes/webview_cef?logo=dart" alt="Pub.dev likes"/></a> <a href="https://pub.dev/packages/webview_cef" alt="Pub.dev popularity"><img src="https://img.shields.io/pub/popularity/webview_cef?logo=dart"/></a> <a href="https://pub.dev/packages/webview_cef"><img src="https://img.shields.io/pub/points/webview_cef?logo=dart" alt="Pub.dev points"/></a> <a href="https://pub.dev/packages/webview_cef"><img src="https://img.shields.io/pub/v/webview_cef.svg" alt="latest version"/></a> <a href="https://pub.dev/packages/webview_cef"><img src="https://img.shields.io/badge/macOS%20%7C%20Windows%20%7C%20Linux-blue?logo=flutter" alt="Platform"/></a>
