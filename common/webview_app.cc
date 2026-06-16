@@ -145,7 +145,10 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
 		}
 		else if (m_uMode == 3)
 		{
-			command_line->AppendSwitch("single-process");                                     //all in one process
+			// All in one process. On macOS this bypasses the "<App> Helper.app"
+			// subprocess entirely; it's also what startCEF falls back to when no
+			// helper bundle is embedded. Debug-only / unstable for long sessions.
+			command_line->AppendSwitch("single-process");
 		}
 		command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");     //autoplay policy for media
 

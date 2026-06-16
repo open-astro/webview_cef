@@ -580,7 +580,10 @@ namespace webview_cef {
 			// multi-byte app names (e.g. CJK) aren't silently truncated.
 			CFIndex maxLen = CFStringGetMaximumSizeForEncoding(
 				CFStringGetLength(exe), kCFStringEncodingUTF8);
-			if (maxLen > 0) {
+			// Guard kCFNotFound (-1) and any absurd length so maxLen + 1 can't
+			// wrap negative into a huge size_t allocation. An executable name
+			// longer than PATH_MAX isn't a real bundle.
+			if (maxLen > 0 && maxLen <= PATH_MAX) {
 				CFIndex maxBytes = maxLen + 1;
 				std::vector<char> buf(static_cast<size_t>(maxBytes), 0);
 				if (CFStringGetCString(exe, buf.data(), maxBytes, kCFStringEncodingUTF8)) {
@@ -628,27 +631,31 @@ namespace webview_cef {
 		// only working mode would be the (unstable) single-process one.
 		{
 			std::string helperPath = macHelperExecutablePath();
-			if (helperPath.empty()) {
-				// Couldn't resolve the running app bundle (no main bundle / URL).
-				fprintf(stderr,
-					"[webview_cef] could not resolve the app bundle path to locate "
-					"the CEF helper; multi-process CEF disabled.\n");
-			} else if (faccessat(AT_FDCWD, helperPath.c_str(), X_OK, AT_EACCESS) == 0) {
+			if (!helperPath.empty() && faccessat(AT_FDCWD, helperPath.c_str(), X_OK, AT_EACCESS) == 0) {
 				CefString(&cefs.browser_subprocess_path) = helperPath;
 			} else {
-				// The host app hasn't embedded the "<App> Helper.app" subprocess
-				// (run macos/webview_cef/helper/add_helper_target.rb against its
-				// Runner.xcodeproj). With browser_subprocess_path unset CEF falls
-				// back to re-executing the main app binary as its subprocess — which
-				// for a Flutter host means relaunching the whole app as a renderer,
-				// not a clean helper, so subprocesses won't work correctly until the
-				// helper is embedded.
-				fprintf(stderr,
-					"[webview_cef] CEF helper not found at '%s' — run "
-					"add_helper_target.rb to embed it. Until then CEF will try to "
-					"re-exec the app binary as its subprocess, which is unsupported "
-					"for a Flutter host.\n",
-					helperPath.c_str());
+				// No usable helper bundle: either the app path couldn't be resolved,
+				// or the host app hasn't embedded "<App> Helper.app" (run
+				// macos/webview_cef/helper/add_helper_target.rb against its
+				// Runner.xcodeproj). Leaving browser_subprocess_path unset makes CEF
+				// re-exec the main app binary as its subprocess, which for a Flutter
+				// host relaunches the whole app as a renderer and crashes/hangs. Fall
+				// back to single-process mode instead so the webview still works
+				// (degraded, but not broken) until the helper is embedded.
+				if (helperPath.empty()) {
+					fprintf(stderr,
+						"[webview_cef] could not resolve the app bundle path to locate "
+						"the CEF helper; falling back to single-process mode.\n");
+				} else {
+					fprintf(stderr,
+						"[webview_cef] CEF helper not found at '%s' — run "
+						"add_helper_target.rb to embed it; falling back to "
+						"single-process mode for now.\n",
+						helperPath.c_str());
+				}
+				if (app) {
+					app->SetProcessMode(3); // appends --single-process for the browser
+				}
 			}
 		}
 #else
