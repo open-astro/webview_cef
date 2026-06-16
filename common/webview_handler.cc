@@ -10,6 +10,7 @@
 #include <chrono>
 #include <unordered_map>
 #include <cstdint>
+#include <exception>
 
 #include "include/cef_version.h"
 #include "include/base/cef_callback.h"
@@ -582,14 +583,24 @@ void WebviewHandler::sendJavaScriptChannelCallBack(const bool error, const std::
         CefRefPtr<CefFrame> frame = bit->second.browser->GetMainFrame();
 
         // CefFrame::GetIdentifier() returned an int64 through ~M121 and a string
-        // token from M122 on. Gate on the CEF version (not the OS) so this stays
-        // correct while platforms are on different CEF builds — Windows is still
-        // on CEF 101 (int64); macOS/Linux on 130 (string). It auto-switches when
-        // Windows migrates to 130 (see third/download.cmake).
+        // token from M122 on (CEF commit that switched CefFrame to a string id).
+        // Gate on the CEF version (not the OS) so this stays correct while
+        // platforms are on different CEF builds — Windows is still on CEF 101
+        // (int64); macOS/Linux on 130 (string). It auto-switches when Windows
+        // migrates to 130 (see third/download.cmake). frameIdInt (from atoll
+        // above) and the M122+ token both assume a decimal identifier.
+        bool identifierMatch = false;
 #if CHROME_VERSION_MAJOR >= 122
-        bool identifierMatch = std::stoll(frame->GetIdentifier().ToString()) == frameIdInt;
+        // The token is decimal today; guard the parse so a future non-numeric
+        // identifier format degrades to "no match" instead of crashing the
+        // browser process with an unhandled std::stoll exception.
+        try {
+            identifierMatch = std::stoll(frame->GetIdentifier().ToString()) == frameIdInt;
+        } catch (const std::exception&) {
+            identifierMatch = false;
+        }
 #else
-        bool identifierMatch = frame->GetIdentifier() == frameIdInt;
+        identifierMatch = frame->GetIdentifier() == frameIdInt;
 #endif
         if (identifierMatch)
         {
