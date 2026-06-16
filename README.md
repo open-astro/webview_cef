@@ -148,7 +148,10 @@ against.
 > process can `dlopen` the separately-signed CEF framework) together with
 > `allow-jit` is **incompatible with Mac App Store** distribution. This is fine
 > for Developer-ID / direct distribution (notarization is unaffected), which is
-> how CEF apps normally ship.
+> how CEF apps normally ship. Note that `disable-library-validation` relaxes
+> third-party code-injection protection for the whole host process (not just CEF
+> framework loading) — this is the standard CEF-on-macOS requirement, not
+> something specific to this plugin.
 
 > Offscreen (windowless) rendering uses ANGLE's SwiftShader for WebGL with an
 > in-process GPU, and disables Chromium 130's Rust `fontations` font backend

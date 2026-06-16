@@ -633,12 +633,16 @@ namespace webview_cef {
 			} else {
 				// The host app hasn't embedded the "<App> Helper.app" subprocess
 				// (run macos/webview_cef/helper/add_helper_target.rb against its
-				// Runner.xcodeproj). Leaving browser_subprocess_path unset lets CEF
-				// fall back to its default rather than pointing at a missing binary,
-				// but multi-process subprocesses will not launch until it's embedded.
+				// Runner.xcodeproj). With browser_subprocess_path unset CEF falls
+				// back to re-executing the main app binary as its subprocess — which
+				// for a Flutter host means relaunching the whole app as a renderer,
+				// not a clean helper, so subprocesses won't work correctly until the
+				// helper is embedded.
 				fprintf(stderr,
 					"[webview_cef] CEF helper not found at '%s' — run "
-					"add_helper_target.rb to embed it; multi-process CEF disabled.\n",
+					"add_helper_target.rb to embed it. Until then CEF will try to "
+					"re-exec the app binary as its subprocess, which is unsupported "
+					"for a Flutter host.\n",
 					helperPath.c_str());
 			}
 		}

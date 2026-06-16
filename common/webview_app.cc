@@ -172,7 +172,11 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
         // diagnosed there; Linux can opt in once it's verified to need it.
         if (values.find("FontationsFontBackend") == std::string::npos)
         {
-            values += ",FontationsFontBackend";
+            // values is non-empty here (seeded with SameSiteByDefaultCookies
+            // above), but guard the separator anyway so a future reorder can't
+            // produce a leading-comma ",FontationsFontBackend".
+            values += (values.empty() ? "" : ",");
+            values += "FontationsFontBackend";
         }
 #endif
 

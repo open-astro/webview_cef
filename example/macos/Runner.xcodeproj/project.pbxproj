@@ -21,16 +21,17 @@
 /* End PBXAggregateTarget section */
 
 /* Begin PBXBuildFile section */
+		0496CCD888C4CAB4FCE01C7E /* process_helper_main.cc in Sources */ = {isa = PBXBuildFile; fileRef = FD43FD219389AC5CEB626993 /* process_helper_main.cc */; };
+		0F0CBAB3EF61B5BD28A8BB38 /* Helper.app in Embed CEF Helper */ = {isa = PBXBuildFile; fileRef = 8AA849C45B83298BDC2D1E15 /* Helper.app */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */ = {isa = PBXBuildFile; fileRef = 335BBD1A22A9A15E00E9071D /* GeneratedPluginRegistrant.swift */; };
 		33CC10F62044A3C60003C045 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 33CC10F42044A3C60003C045 /* MainMenu.xib */; };
 		33CC11132044BFA00003C045 /* MainFlutterWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11122044BFA00003C045 /* MainFlutterWindow.swift */; };
-		5F652E89B7AD830987435085 /* process_helper_main.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAF5826AC2407048D5A763EA /* process_helper_main.cc */; };
 		65A31E7A28F94DF70084A313 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 65A31E7928F94DF70084A313 /* Assets.xcassets */; };
 		65F3C825293609F800127D45 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65F3C824293609F800127D45 /* AppDelegate.swift */; };
+		6B6DD74778F2B15AF992A772 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91C94E2D56DE934754CEC93C /* Cocoa.framework */; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
-		8513F8A8C781918A2773C2C0 /* Helper.app in Embed CEF Helper */ = {isa = PBXBuildFile; fileRef = 778AB6B5EE4E270CEDE0640C /* Helper.app */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		9BEC192FBCCC4448BE9CCEC2 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A4B5197F4C8A9CD3178DC66E /* Pods_Runner.framework */; };
-		DC4ECBB54410285473A6D05E /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91C94E2D56DE934754CEC93C /* Cocoa.framework */; };
+		C46B4D939D07F3403B8526D6 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91C94E2D56DE934754CEC93C /* Cocoa.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -41,11 +42,11 @@
 			remoteGlobalIDString = 33CC111A2044C6BA0003C045;
 			remoteInfo = FLX;
 		};
-		752B4F0B4BF5EF8EB439D9B1 /* PBXContainerItemProxy */ = {
+		57AC9714CA6F13107841037B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 33CC10E52044A3C60003C045 /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = 3E539CD0E2016C790CFB71C5;
+			remoteGlobalIDString = 927CD50C3E2D8D106FCEE30C;
 			remoteInfo = Helper;
 		};
 /* End PBXContainerItemProxy section */
@@ -67,7 +68,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				8513F8A8C781918A2773C2C0 /* Helper.app in Embed CEF Helper */,
+				0F0CBAB3EF61B5BD28A8BB38 /* Helper.app in Embed CEF Helper */,
 			);
 			name = "Embed CEF Helper";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -92,23 +93,23 @@
 		5C516FEBF47E87731E22BEE4 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		65A31E7928F94DF70084A313 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		65F3C824293609F800127D45 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		778AB6B5EE4E270CEDE0640C /* Helper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Helper.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		784666492D4C4C64000A1A5F /* FlutterFramework */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = FlutterFramework; path = ephemeral/Packages/.packages/FlutterFramework; sourceTree = "<group>"; };
 		78DABEA22ED26510000E7860 /* webview_cef */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = webview_cef; path = ../../../macos/webview_cef; sourceTree = "<group>"; };
 		78E0A7A72DC9AD7400C4905E /* FlutterGeneratedPluginSwiftPackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = FlutterGeneratedPluginSwiftPackage; path = ephemeral/Packages/FlutterGeneratedPluginSwiftPackage; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		8AA849C45B83298BDC2D1E15 /* Helper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Helper.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		91C94E2D56DE934754CEC93C /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/Cocoa.framework; sourceTree = DEVELOPER_DIR; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		A4B5197F4C8A9CD3178DC66E /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		DAF5826AC2407048D5A763EA /* process_helper_main.cc */ = {isa = PBXFileReference; includeInIndex = 1; name = process_helper_main.cc; path = ../../macos/webview_cef/helper/process_helper_main.cc; sourceTree = "<group>"; };
+		FD43FD219389AC5CEB626993 /* process_helper_main.cc */ = {isa = PBXFileReference; includeInIndex = 1; name = process_helper_main.cc; path = ../../macos/webview_cef/helper/process_helper_main.cc; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		26E42E316327B1CFCB00BA26 /* Frameworks */ = {
+		124BD8032E5BB53A3541D3D5 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DC4ECBB54410285473A6D05E /* Cocoa.framework in Frameworks */,
+				6B6DD74778F2B15AF992A772 /* Cocoa.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -124,6 +125,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		2CAA8544904F7B6157A5FAF2 /* CEF Helper */ = {
+			isa = PBXGroup;
+			children = (
+				FD43FD219389AC5CEB626993 /* process_helper_main.cc */,
+			);
+			name = "CEF Helper";
+			sourceTree = "<group>";
+		};
 		33BA886A226E78AF003329D5 /* Configs */ = {
 			isa = PBXGroup;
 			children = (
@@ -143,7 +152,7 @@
 				33CC10EE2044A3C60003C045 /* Products */,
 				D73912EC22F37F3D000D13A0 /* Frameworks */,
 				54C3949009643371D3BA5EEE /* Pods */,
-				DAF5826AC2407048D5A763EA /* process_helper_main.cc */,
+				2CAA8544904F7B6157A5FAF2 /* CEF Helper */,
 			);
 			sourceTree = "<group>";
 		};
@@ -151,7 +160,7 @@
 			isa = PBXGroup;
 			children = (
 				33CC10ED2044A3C60003C045 /* webview_cef_example.app */,
-				778AB6B5EE4E270CEDE0640C /* Helper.app */,
+				8AA849C45B83298BDC2D1E15 /* Helper.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -240,7 +249,7 @@
 			);
 			dependencies = (
 				33CC11202044C79F0003C045 /* PBXTargetDependency */,
-				4C0564A0B28DA9613689F4DB /* PBXTargetDependency */,
+				2A6B0BE44892F026BB2C2CE0 /* PBXTargetDependency */,
 			);
 			name = Runner;
 			packageProductDependencies = (
@@ -250,13 +259,13 @@
 			productReference = 33CC10ED2044A3C60003C045 /* webview_cef_example.app */;
 			productType = "com.apple.product-type.application";
 		};
-		3E539CD0E2016C790CFB71C5 /* Helper */ = {
+		927CD50C3E2D8D106FCEE30C /* Helper */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 37BA1A7E9AED074169C79ABD /* Build configuration list for PBXNativeTarget "Helper" */;
+			buildConfigurationList = BF7C03E37311427511D8A9D4 /* Build configuration list for PBXNativeTarget "Helper" */;
 			buildPhases = (
-				C4A464783CEB62FAF6BBA278 /* Sources */,
-				26E42E316327B1CFCB00BA26 /* Frameworks */,
-				FB347C2085A75F4186EA6926 /* Resources */,
+				0A9EE56F65603DF3445E390D /* Sources */,
+				124BD8032E5BB53A3541D3D5 /* Frameworks */,
+				1F1E9E04EDD8F6DC3CF6531C /* Resources */,
 			);
 			buildRules = (
 			);
@@ -264,7 +273,7 @@
 			);
 			name = Helper;
 			productName = Helper;
-			productReference = 778AB6B5EE4E270CEDE0640C /* Helper.app */;
+			productReference = 8AA849C45B83298BDC2D1E15 /* Helper.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -311,25 +320,25 @@
 			targets = (
 				33CC10EC2044A3C60003C045 /* Runner */,
 				33CC111A2044C6BA0003C045 /* Flutter Assemble */,
-				3E539CD0E2016C790CFB71C5 /* Helper */,
+				927CD50C3E2D8D106FCEE30C /* Helper */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		1F1E9E04EDD8F6DC3CF6531C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		33CC10EB2044A3C60003C045 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				65A31E7A28F94DF70084A313 /* Assets.xcassets in Resources */,
 				33CC10F62044A3C60003C045 /* MainMenu.xib in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		FB347C2085A75F4186EA6926 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -399,6 +408,14 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		0A9EE56F65603DF3445E390D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0496CCD888C4CAB4FCE01C7E /* process_helper_main.cc in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		33CC10E92044A3C60003C045 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -409,27 +426,19 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		C4A464783CEB62FAF6BBA278 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				5F652E89B7AD830987435085 /* process_helper_main.cc in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		2A6B0BE44892F026BB2C2CE0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Helper;
+			target = 927CD50C3E2D8D106FCEE30C /* Helper */;
+			targetProxy = 57AC9714CA6F13107841037B /* PBXContainerItemProxy */;
+		};
 		33CC11202044C79F0003C045 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 33CC111A2044C6BA0003C045 /* Flutter Assemble */;
 			targetProxy = 33CC111F2044C79F0003C045 /* PBXContainerItemProxy */;
-		};
-		4C0564A0B28DA9613689F4DB /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = Helper;
-			target = 3E539CD0E2016C790CFB71C5 /* Helper */;
-			targetProxy = 752B4F0B4BF5EF8EB439D9B1 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -676,7 +685,7 @@
 			};
 			name = Release;
 		};
-		AFF4CA63127F31C9991DF9AD /* Release */ = {
+		4D0D72F670D850E09CF47592 /* Profile */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -712,9 +721,9 @@
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
 			};
-			name = Release;
+			name = Profile;
 		};
-		C607F35E603BBE507B71EA3A /* Debug */ = {
+		714111786384709371EC60E9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -752,7 +761,121 @@
 			};
 			name = Debug;
 		};
-		CD5C79D740E1917ADA2B0680 /* Profile */ = {
+		720BCD2F40596AB936712519 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = ../../macos/webview_cef/helper/helper.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					../../macos/webview_cef/third/cef,
+				);
+				INFOPLIST_FILE = "../../macos/webview_cef/helper/Helper-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../../../..",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					../../macos/webview_cef/third/cef,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lcef_dll_wrapper",
+					"-framework",
+					AppKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.app.helper;
+				PRODUCT_NAME = "webview_cef_example Helper";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		A9BA5AD09313274281688084 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = ../../macos/webview_cef/helper/helper.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					../../macos/webview_cef/third/cef,
+				);
+				INFOPLIST_FILE = "../../macos/webview_cef/helper/Helper-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../../../..",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					../../macos/webview_cef/third/cef,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lcef_dll_wrapper",
+					"-framework",
+					AppKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.app.helper;
+				PRODUCT_NAME = "webview_cef_example Helper";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		D2BB55C2766C9280D0990823 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = ../../macos/webview_cef/helper/helper.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					../../macos/webview_cef/third/cef,
+				);
+				INFOPLIST_FILE = "../../macos/webview_cef/helper/Helper-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../../../..",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					../../macos/webview_cef/third/cef,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lcef_dll_wrapper",
+					"-framework",
+					AppKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.app.helper;
+				PRODUCT_NAME = "webview_cef_example Helper";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		EF95885E0B283D762FDEF803 /* Profile */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -823,12 +946,12 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		37BA1A7E9AED074169C79ABD /* Build configuration list for PBXNativeTarget "Helper" */ = {
+		BF7C03E37311427511D8A9D4 /* Build configuration list for PBXNativeTarget "Helper" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				AFF4CA63127F31C9991DF9AD /* Release */,
-				C607F35E603BBE507B71EA3A /* Debug */,
-				CD5C79D740E1917ADA2B0680 /* Profile */,
+				A9BA5AD09313274281688084 /* Release */,
+				714111786384709371EC60E9 /* Debug */,
+				EF95885E0B283D762FDEF803 /* Profile */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

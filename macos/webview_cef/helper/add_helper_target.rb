@@ -87,10 +87,14 @@ helper.build_configurations.each do |c|
   s['ENABLE_HARDENED_RUNTIME']      = 'YES'
 end
 
-# Drop any stale file reference from a previous run so re-running doesn't leave
-# orphaned process_helper_main.cc entries in the project's main group.
-project.main_group.files.select { |f| f.path == helper_src }.each(&:remove_from_project)
-src_ref = project.main_group.new_file(helper_src)
+# Place the helper source in a dedicated "CEF Helper" group rather than the
+# project root, so it doesn't clutter the navigator of every consumer. Drop any
+# stale reference (anywhere in the project) first so re-runs don't accumulate
+# orphaned process_helper_main.cc entries.
+project.files.select { |f| f.path == helper_src }.each(&:remove_from_project)
+helper_group = project.main_group.groups.find { |g| g.display_name == 'CEF Helper' } ||
+               project.main_group.new_group('CEF Helper')
+src_ref = helper_group.new_file(helper_src)
 helper.source_build_phase.add_file_reference(src_ref)
 
 # --- Runner: embed the helper + JIT entitlements + dependency ------------------
@@ -126,11 +130,16 @@ runner.build_configurations.each do |c|
     next
   end
   # Resolve the entitlements path (relative to the Runner.xcodeproj parent dir)
-  # and merge the required keys into the existing plist.
-  ents_path = File.expand_path(ents.to_s.gsub(/\$\(SRCROOT\)/, '.').delete('"'), macos_dir)
+  # and merge the required keys into the existing plist. $(SRCROOT)/$(PROJECT_DIR)
+  # both resolve to that same dir for a Flutter Runner project.
+  resolved = ents.to_s.delete('"').gsub(/\$\((?:SRCROOT|PROJECT_DIR)\)/, '.')
+  ents_path = File.expand_path(resolved, macos_dir)
+  # Abort (don't silently skip) on an unresolved path — skipping would leave the
+  # host app without the JIT/library-validation entitlements and surface only as
+  # a confusing runtime crash.
   unless File.exist?(ents_path)
-    warn "  ! CODE_SIGN_ENTITLEMENTS '#{ents}' not found at #{ents_path}; skipping entitlement merge for #{c.name}"
-    next
+    abort "  ! CODE_SIGN_ENTITLEMENTS '#{ents}' (#{c.name}) did not resolve to an existing file " \
+          "(tried #{ents_path}). Merge the JIT entitlements manually or fix the path before re-running."
   end
   plist = Xcodeproj::Plist.read_from_path(ents_path) || {}
   added = host_keys.reject { |k| plist[k] == true }
