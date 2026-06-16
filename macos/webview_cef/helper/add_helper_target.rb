@@ -31,8 +31,36 @@ macos_dir     = File.dirname(proj_path) # the "macos" dir next to Runner.xcodepr
 
 runner = project.targets.find { |t| t.name == 'Runner' } or abort 'no Runner target'
 
-# Reuse the Runner's bundle id prefix for the helper's id.
-runner_bundle_id = runner.build_configurations.first.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] || 'com.example.app'
+# Reuse the Runner's bundle id prefix for the helper's id. Flutter projects set
+# PRODUCT_BUNDLE_IDENTIFIER in Runner/Configs/AppInfo.xcconfig, so the project
+# file often holds the literal "$(PRODUCT_BUNDLE_IDENTIFIER)" (or nothing) rather
+# than a real id. Resolve through the xcconfig(s) before falling back, otherwise
+# the helper would get a bogus id like "$(PRODUCT_BUNDLE_IDENTIFIER).helper".
+def resolve_bundle_id(runner, macos_dir)
+  raw = runner.build_configurations.first.build_settings['PRODUCT_BUNDLE_IDENTIFIER']
+  # Reject any unresolved value ($(...) or ${...}) and fall through to the xcconfig.
+  return raw if raw && !raw.empty? && !raw.include?('$')
+  # Flutter keeps the real id in Runner/Configs/AppInfo.xcconfig. Search only the
+  # Runner's own xcconfigs — NOT Pods/, whose configs carry an unrelated
+  # "org.cocoapods.${PRODUCT_NAME:rfc1034identifier}" default.
+  Dir.glob(File.join(macos_dir, 'Runner', '**', '*.xcconfig')).sort.each do |xc|
+    File.foreach(xc) do |line|
+      if line =~ /^\s*PRODUCT_BUNDLE_IDENTIFIER\s*=\s*(\S+)/
+        val = Regexp.last_match(1).strip
+        return val unless val.include?('$')
+      end
+    end
+  end
+  nil
+end
+
+runner_bundle_id = resolve_bundle_id(runner, macos_dir)
+if runner_bundle_id.nil? || runner_bundle_id.empty?
+  runner_bundle_id = 'com.example.app'
+  warn "  ! could not resolve the Runner's PRODUCT_BUNDLE_IDENTIFIER (checked the " \
+       "project + *.xcconfig); using '#{runner_bundle_id}'. Set the helper bundle " \
+       "id manually before distribution."
+end
 helper_bundle_id = "#{runner_bundle_id}.helper"
 
 cef_dir       = "#{plugin_macos}/third/cef"                       # contains include/ + libcef_dll_wrapper.a
