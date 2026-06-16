@@ -91,6 +91,20 @@ helper.build_configurations.each do |c|
   s['ENABLE_HARDENED_RUNTIME']      = 'YES'
 end
 
+# xcodeproj's new_target auto-links Cocoa.framework via an SDK-pinned path
+# (DEVELOPER_DIR/Platforms/.../MacOSX<ver>.sdk/...), which hardcodes the build
+# machine's SDK version and makes the project fail to build on any other SDK. The
+# helper links AppKit through OTHER_LDFLAGS instead, so strip the auto-added
+# framework: empty the helper's Frameworks phase and drop every SDK-pinned
+# Cocoa.framework file reference (and any build file still pointing at it).
+helper.frameworks_build_phase.files.dup.each(&:remove_from_project)
+project.objects.select { |o|
+  o.isa == 'PBXFileReference' && o.path.to_s =~ %r{/MacOSX[\d.]*\.sdk/.*/Cocoa\.framework\z}
+}.each do |ref|
+  project.objects.select { |o| o.isa == 'PBXBuildFile' && o.file_ref == ref }.each(&:remove_from_project)
+  ref.remove_from_project
+end
+
 # Place the helper source in a dedicated "CEF Helper" group rather than the
 # project root, so it doesn't clutter the navigator of every consumer. Drop any
 # stale reference (anywhere in the project) first so re-runs don't accumulate
@@ -136,7 +150,7 @@ runner.build_configurations.each do |c|
   # Resolve the entitlements path (relative to the Runner.xcodeproj parent dir)
   # and merge the required keys into the existing plist. $(SRCROOT)/$(PROJECT_DIR)
   # both resolve to that same dir for a Flutter Runner project.
-  resolved = ents.to_s.delete('"').gsub(/\$\((?:SRCROOT|PROJECT_DIR)\)/, '.')
+  resolved = ents.to_s.delete('"').gsub(/\$\((?:SRCROOT|SOURCE_ROOT|PROJECT_DIR)\)/, '.')
   ents_path = File.expand_path(resolved, macos_dir)
   # Abort (don't silently skip) on an unresolved path — skipping would leave the
   # host app without the JIT/library-validation entitlements and surface only as
