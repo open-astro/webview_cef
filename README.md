@@ -126,7 +126,10 @@ ruby packages/webview_cef/macos/webview_cef/helper/add_helper_target.rb \
 - The last argument is the path (relative to the `macos/` dir) to the plugin's
   `macos/webview_cef` directory.
 
-The script is idempotent — re-running updates the existing target. It:
+The script is idempotent — re-running updates the existing target (no duplicated
+or orphaned objects). It does regenerate the helper target's UUIDs each run,
+though, so **run it once and commit the result**; don't re-run it in a CI
+`git diff --exit-code` check (the diff won't be byte-stable). It:
 
 - adds a `Helper` application target (`<AppName> Helper`) that links
   `libcef_dll_wrapper` + AppKit and `dlopen`s the embedded CEF framework at

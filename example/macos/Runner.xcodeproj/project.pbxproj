@@ -26,13 +26,20 @@
 		33CC11132044BFA00003C045 /* MainFlutterWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11122044BFA00003C045 /* MainFlutterWindow.swift */; };
 		65A31E7A28F94DF70084A313 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 65A31E7928F94DF70084A313 /* Assets.xcassets */; };
 		65F3C825293609F800127D45 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65F3C824293609F800127D45 /* AppDelegate.swift */; };
-		75BB9D5C6A91C032F02F0932 /* process_helper_main.cc in Sources */ = {isa = PBXBuildFile; fileRef = 262A04D35E285BA90CA92EBB /* process_helper_main.cc */; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
 		9BEC192FBCCC4448BE9CCEC2 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A4B5197F4C8A9CD3178DC66E /* Pods_Runner.framework */; };
-		A46C81C3B89DFB136CB361BF /* webview_cef_example Helper.app in Embed CEF Helper */ = {isa = PBXBuildFile; fileRef = 21BA971FD43A56A608F1838E /* webview_cef_example Helper.app */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		D19B4129C06D533F147D7B5D /* webview_cef_example Helper.app in Embed CEF Helper */ = {isa = PBXBuildFile; fileRef = CDD5A47F473BD4D6E0F98B53 /* webview_cef_example Helper.app */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		F61956E83B87891DA2009BC7 /* process_helper_main.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4430E13A7EBE1576121D148E /* process_helper_main.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		160CFE11D98906EDE3105D17 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 33CC10E52044A3C60003C045 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0ECFC4EB425A333AD476BDCD;
+			remoteInfo = Helper;
+		};
 		33CC111F2044C79F0003C045 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 33CC10E52044A3C60003C045 /* Project object */;
@@ -40,27 +47,9 @@
 			remoteGlobalIDString = 33CC111A2044C6BA0003C045;
 			remoteInfo = FLX;
 		};
-		DD5A8090065CE180AC5FAA2E /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 33CC10E52044A3C60003C045 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 7117702D645471F6A947CAEF;
-			remoteInfo = Helper;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		095B8DCF0F4EC93F0D22BBFD /* Embed CEF Helper */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-				A46C81C3B89DFB136CB361BF /* webview_cef_example Helper.app in Embed CEF Helper */,
-			);
-			name = "Embed CEF Helper";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		33CC110E2044A8840003C045 /* Bundle Framework */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -71,11 +60,20 @@
 			name = "Bundle Framework";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		64F3D542D0012CCF3BEF335E /* Embed CEF Helper */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				D19B4129C06D533F147D7B5D /* webview_cef_example Helper.app in Embed CEF Helper */,
+			);
+			name = "Embed CEF Helper";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		21BA971FD43A56A608F1838E /* webview_cef_example Helper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "webview_cef_example Helper.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		262A04D35E285BA90CA92EBB /* process_helper_main.cc */ = {isa = PBXFileReference; includeInIndex = 1; name = process_helper_main.cc; path = ../../macos/webview_cef/helper/process_helper_main.cc; sourceTree = "<group>"; };
 		2F259BC255747F98B88D3DBF /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
 		333000ED22D3DE5D00554162 /* Warnings.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Warnings.xcconfig; sourceTree = "<group>"; };
 		335BBD1A22A9A15E00E9071D /* GeneratedPluginRegistrant.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GeneratedPluginRegistrant.swift; sourceTree = "<group>"; };
@@ -89,6 +87,7 @@
 		33E51913231747F40026EE4D /* DebugProfile.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DebugProfile.entitlements; sourceTree = "<group>"; };
 		33E51914231749380026EE4D /* Release.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = Release.entitlements; sourceTree = "<group>"; };
 		33E5194F232828860026EE4D /* AppInfo.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = AppInfo.xcconfig; sourceTree = "<group>"; };
+		4430E13A7EBE1576121D148E /* process_helper_main.cc */ = {isa = PBXFileReference; includeInIndex = 1; name = process_helper_main.cc; path = ../../macos/webview_cef/helper/process_helper_main.cc; sourceTree = "<group>"; };
 		45472515FD3D18C36021F832 /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
 		5C516FEBF47E87731E22BEE4 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		65A31E7928F94DF70084A313 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -99,6 +98,7 @@
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		A4B5197F4C8A9CD3178DC66E /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		CDD5A47F473BD4D6E0F98B53 /* webview_cef_example Helper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "webview_cef_example Helper.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -111,7 +111,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		5EA561B32C90B3F8C1010B24 /* Frameworks */ = {
+		E9FA2A53E4107F40738979D3 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -140,7 +140,7 @@
 				33CC10EE2044A3C60003C045 /* Products */,
 				D73912EC22F37F3D000D13A0 /* Frameworks */,
 				54C3949009643371D3BA5EEE /* Pods */,
-				3D18F67313F3AC33A6E78131 /* CEF Helper */,
+				7389AD71BF2B1EB0A1D59E6F /* CEF Helper */,
 			);
 			sourceTree = "<group>";
 		};
@@ -148,7 +148,7 @@
 			isa = PBXGroup;
 			children = (
 				33CC10ED2044A3C60003C045 /* webview_cef_example.app */,
-				21BA971FD43A56A608F1838E /* webview_cef_example Helper.app */,
+				CDD5A47F473BD4D6E0F98B53 /* webview_cef_example Helper.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -191,14 +191,6 @@
 			path = Runner;
 			sourceTree = "<group>";
 		};
-		3D18F67313F3AC33A6E78131 /* CEF Helper */ = {
-			isa = PBXGroup;
-			children = (
-				262A04D35E285BA90CA92EBB /* process_helper_main.cc */,
-			);
-			name = "CEF Helper";
-			sourceTree = "<group>";
-		};
 		54C3949009643371D3BA5EEE /* Pods */ = {
 			isa = PBXGroup;
 			children = (
@@ -207,6 +199,14 @@
 				5C516FEBF47E87731E22BEE4 /* Pods-Runner.profile.xcconfig */,
 			);
 			path = Pods;
+			sourceTree = "<group>";
+		};
+		7389AD71BF2B1EB0A1D59E6F /* CEF Helper */ = {
+			isa = PBXGroup;
+			children = (
+				4430E13A7EBE1576121D148E /* process_helper_main.cc */,
+			);
+			name = "CEF Helper";
 			sourceTree = "<group>";
 		};
 		D73912EC22F37F3D000D13A0 /* Frameworks */ = {
@@ -220,6 +220,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		0ECFC4EB425A333AD476BDCD /* Helper */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E07D692F93426C1275A32CBC /* Build configuration list for PBXNativeTarget "Helper" */;
+			buildPhases = (
+				CEC53122EA6415544EFF57B2 /* Sources */,
+				E9FA2A53E4107F40738979D3 /* Frameworks */,
+				32E20669E17FF713242AD5F6 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Helper;
+			productName = Helper;
+			productReference = CDD5A47F473BD4D6E0F98B53 /* webview_cef_example Helper.app */;
+			productType = "com.apple.product-type.application";
+		};
 		33CC10EC2044A3C60003C045 /* Runner */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 33CC10FB2044A3C60003C045 /* Build configuration list for PBXNativeTarget "Runner" */;
@@ -230,13 +247,13 @@
 				33CC10EB2044A3C60003C045 /* Resources */,
 				33CC110E2044A8840003C045 /* Bundle Framework */,
 				3399D490228B24CF009A79C7 /* ShellScript */,
-				095B8DCF0F4EC93F0D22BBFD /* Embed CEF Helper */,
+				64F3D542D0012CCF3BEF335E /* Embed CEF Helper */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				33CC11202044C79F0003C045 /* PBXTargetDependency */,
-				6532461C86685E457C8BC590 /* PBXTargetDependency */,
+				771E57EE6846BBDFC1644212 /* PBXTargetDependency */,
 			);
 			name = Runner;
 			packageProductDependencies = (
@@ -244,23 +261,6 @@
 			);
 			productName = Runner;
 			productReference = 33CC10ED2044A3C60003C045 /* webview_cef_example.app */;
-			productType = "com.apple.product-type.application";
-		};
-		7117702D645471F6A947CAEF /* Helper */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = E2CFED6A39B20D33398E48FE /* Build configuration list for PBXNativeTarget "Helper" */;
-			buildPhases = (
-				6BB408489EA49F82B0ED24E1 /* Sources */,
-				5EA561B32C90B3F8C1010B24 /* Frameworks */,
-				CD2FC17EB30E059173D87674 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = Helper;
-			productName = Helper;
-			productReference = 21BA971FD43A56A608F1838E /* webview_cef_example Helper.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -307,25 +307,25 @@
 			targets = (
 				33CC10EC2044A3C60003C045 /* Runner */,
 				33CC111A2044C6BA0003C045 /* Flutter Assemble */,
-				7117702D645471F6A947CAEF /* Helper */,
+				0ECFC4EB425A333AD476BDCD /* Helper */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		32E20669E17FF713242AD5F6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		33CC10EB2044A3C60003C045 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				65A31E7A28F94DF70084A313 /* Assets.xcassets in Resources */,
 				33CC10F62044A3C60003C045 /* MainMenu.xib in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		CD2FC17EB30E059173D87674 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -405,11 +405,11 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		6BB408489EA49F82B0ED24E1 /* Sources */ = {
+		CEC53122EA6415544EFF57B2 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				75BB9D5C6A91C032F02F0932 /* process_helper_main.cc in Sources */,
+				F61956E83B87891DA2009BC7 /* process_helper_main.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -421,11 +421,11 @@
 			target = 33CC111A2044C6BA0003C045 /* Flutter Assemble */;
 			targetProxy = 33CC111F2044C79F0003C045 /* PBXContainerItemProxy */;
 		};
-		6532461C86685E457C8BC590 /* PBXTargetDependency */ = {
+		771E57EE6846BBDFC1644212 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = Helper;
-			target = 7117702D645471F6A947CAEF /* Helper */;
-			targetProxy = DD5A8090065CE180AC5FAA2E /* PBXContainerItemProxy */;
+			target = 0ECFC4EB425A333AD476BDCD /* Helper */;
+			targetProxy = 160CFE11D98906EDE3105D17 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -442,7 +442,7 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
-		293C1F625E3AC06E7EE73420 /* Release */ = {
+		03BA2ED54B10FFB10D56FF94 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -709,7 +709,7 @@
 			};
 			name = Release;
 		};
-		5304A933E38E1DEF7C279380 /* Debug */ = {
+		B619412D168508B79FC2869A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -746,7 +746,7 @@
 			};
 			name = Debug;
 		};
-		5BB03DFA0F9E0A2736CC27E6 /* Profile */ = {
+		E2EFDE0A06A2CEA95B9688C4 /* Profile */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -816,12 +816,12 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		E2CFED6A39B20D33398E48FE /* Build configuration list for PBXNativeTarget "Helper" */ = {
+		E07D692F93426C1275A32CBC /* Build configuration list for PBXNativeTarget "Helper" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				293C1F625E3AC06E7EE73420 /* Release */,
-				5304A933E38E1DEF7C279380 /* Debug */,
-				5BB03DFA0F9E0A2736CC27E6 /* Profile */,
+				03BA2ED54B10FFB10D56FF94 /* Release */,
+				B619412D168508B79FC2869A /* Debug */,
+				E2EFDE0A06A2CEA95B9688C4 /* Profile */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

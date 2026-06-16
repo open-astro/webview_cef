@@ -244,3 +244,9 @@ end
 
 project.save
 puts "Wired '#{helper_name}' helper target + embed phase into #{proj_path}"
+puts "  note: this grants com.apple.security.cs.disable-library-validation to the " \
+     "HOST app (needed to load the separately-signed CEF framework). It relaxes " \
+     "dylib-injection protection for the whole host process and is incompatible " \
+     "with Mac App Store distribution — fine for Developer-ID. Re-running this " \
+     "script regenerates target UUIDs, so commit the result once; don't re-run it " \
+     "in a CI 'git diff --exit-code' check."

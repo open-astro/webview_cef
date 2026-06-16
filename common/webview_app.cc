@@ -131,7 +131,10 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
 		command_line->AppendSwitch("allow-running-insecure-content");                           //allow running insecure content in secure pages
 		// Don't create a "GPUCache" directory when cache-path is unspecified.
 		command_line->AppendSwitch("disable-gpu-shader-disk-cache");                            //disable gpu shader disk cache
-        command_line->AppendSwitch("no-sandbox");
+        // (Sandbox is disabled authoritatively via CefSettings.no_sandbox in
+        // WebviewPlugin::startCEF, which makes CEF propagate --no-sandbox to every
+        // process; no command-line switch is added here. The original upstream line
+        // was misspelled "no-sanbox" and was a no-op anyway.)
 
 		//http://www.chromium.org/developers/design-documents/process-models
 		if (m_uMode == 1)
