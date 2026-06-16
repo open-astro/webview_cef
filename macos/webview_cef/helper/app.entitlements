@@ -8,6 +8,11 @@
 	<true/>
 	<key>com.apple.security.cs.allow-unsigned-executable-memory</key>
 	<true/>
+	<!-- Scope note: disable-library-validation lets the host process load the
+	     separately-signed CEF framework, but it relaxes dylib-injection
+	     protection for the WHOLE host process, not just CEF. This is the standard
+	     CEF-on-macOS requirement and can't be narrowed further; it is also
+	     incompatible with Mac App Store distribution (fine for Developer-ID). -->
 	<key>com.apple.security.cs.disable-library-validation</key>
 	<true/>
 </dict>

@@ -173,7 +173,20 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
         // both single- and multi-process CEF on macOS. Fall back to the long-stable
         // FreeType path. Scoped to macOS (like in-process-gpu): the panic was only
         // diagnosed there; Linux can opt in once it's verified to need it.
-        if (values.find("FontationsFontBackend") == std::string::npos)
+        // Comma-delimited token check (not a substring search) so a future feature
+        // such as "NewFontationsFontBackend" can't be mistaken for an existing
+        // entry.
+        auto hasFeature = [&values](const char* tok) {
+            const std::string t(tok);
+            for (size_t p = values.find(t); p != std::string::npos; p = values.find(t, p + t.size())) {
+                const bool startOk = (p == 0 || values[p - 1] == ',');
+                const size_t end = p + t.size();
+                const bool endOk = (end == values.size() || values[end] == ',');
+                if (startOk && endOk) return true;
+            }
+            return false;
+        };
+        if (!hasFeature("FontationsFontBackend"))
         {
             // values is non-empty here (seeded with SameSiteByDefaultCookies
             // above), but guard the separator anyway so a future reorder can't
