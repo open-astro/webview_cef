@@ -64,6 +64,10 @@ if (old = project.targets.find { |t| t.name == helper_target })
   # Drop the target's product (Helper.app) reference too so re-runs don't leave
   # stale entries accumulating in the Products group.
   old.product_reference&.remove_from_project
+  # remove_from_project deletes the target but leaves its XCBuildConfiguration
+  # objects orphaned in the project; remove them (and the now-empty config list)
+  # explicitly so re-runs don't leave dead configs behind.
+  old.build_configuration_list&.build_configurations&.to_a&.each(&:remove_from_project)
   old.remove_from_project
 end
 helper = project.new_target(:application, helper_target, :osx, '10.15')

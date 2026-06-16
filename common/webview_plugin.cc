@@ -4,6 +4,7 @@
 #include <include/wrapper/cef_library_loader.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <cstdio>
 #include <vector>
 #endif
@@ -576,11 +577,14 @@ namespace webview_cef {
 		if (exe) {
 			// Size the buffer to the worst-case UTF-8 byte length (+1 for NUL) so
 			// multi-byte app names (e.g. CJK) aren't silently truncated.
-			CFIndex maxBytes = CFStringGetMaximumSizeForEncoding(
-				CFStringGetLength(exe), kCFStringEncodingUTF8) + 1;
-			std::vector<char> buf(static_cast<size_t>(maxBytes), 0);
-			if (CFStringGetCString(exe, buf.data(), maxBytes, kCFStringEncodingUTF8)) {
-				exeName = buf.data();
+			CFIndex maxLen = CFStringGetMaximumSizeForEncoding(
+				CFStringGetLength(exe), kCFStringEncodingUTF8);
+			if (maxLen > 0) {
+				CFIndex maxBytes = maxLen + 1;
+				std::vector<char> buf(static_cast<size_t>(maxBytes), 0);
+				if (CFStringGetCString(exe, buf.data(), maxBytes, kCFStringEncodingUTF8)) {
+					exeName = buf.data();
+				}
 			}
 		}
 		CFURLRef bundleURL = CFBundleCopyBundleURL(mainBundle);
@@ -628,7 +632,7 @@ namespace webview_cef {
 				fprintf(stderr,
 					"[webview_cef] could not resolve the app bundle path to locate "
 					"the CEF helper; multi-process CEF disabled.\n");
-			} else if (access(helperPath.c_str(), X_OK) == 0) {
+			} else if (faccessat(AT_FDCWD, helperPath.c_str(), X_OK, AT_EACCESS) == 0) {
 				CefString(&cefs.browser_subprocess_path) = helperPath;
 			} else {
 				// The host app hasn't embedded the "<App> Helper.app" subprocess
