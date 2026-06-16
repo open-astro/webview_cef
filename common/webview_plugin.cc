@@ -672,7 +672,7 @@ namespace webview_cef {
 				// (CHECK) or letting CEF re-exec the main binary as a renderer because
 				// the single-process fallback couldn't be applied.
 				if (!app) {
-					DCHECK(app) << "[webview_cef] startCEF reached with a null CefApp";
+					DCHECK(false) << "[webview_cef] startCEF reached with a null CefApp";
 					const std::string msg = "[webview_cef] " + reason +
 						", and the CefApp is null; aborting CEF initialization.";
 					LOG(ERROR) << msg;
