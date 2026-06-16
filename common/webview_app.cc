@@ -115,6 +115,12 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
 			command_line->AppendSwitch("disable-gpu-compositing");
 			command_line->AppendSwitchWithValue("use-angle", "swiftshader");
 			command_line->AppendSwitch("enable-unsafe-swiftshader");
+			// Run the GL/GPU work in the browser process. The renderer still runs
+			// out-of-process (the part that was crashing), but a separate GPU
+			// *subprocess* fails to launch under offscreen software rendering
+			// (gpu_process_host error 1003 -> "GPU process isn't usable"). Software
+			// SwiftShader has no real GPU to isolate, so in-process is correct here.
+			command_line->AppendSwitch("in-process-gpu");
 		}
 
 		command_line->AppendSwitch("disable-web-security");                                     //disable web security
@@ -152,6 +158,15 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
         if (values.find("CalculateNativeWinOcclusion") == size_t(-1))
         {
             values += ",CalculateNativeWinOcclusion";
+        }
+        // Chromium 130 made the Rust "fontations" backend the default Skia font
+        // rasterizer. It panics with an integer overflow (crash_in_rust_with_overflow
+        // in fontations_ffi BridgeBitmapGlyph) on certain glyphs — reproducible in
+        // both single- and multi-process CEF here. Fall back to the long-stable
+        // FreeType path until the backend matures.
+        if (values.find("FontationsFontBackend") == std::string::npos)
+        {
+            values += ",FontationsFontBackend";
         }
 
         command_line->AppendSwitchWithValue("disable-features", values);
