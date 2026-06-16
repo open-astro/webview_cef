@@ -623,7 +623,12 @@ namespace webview_cef {
 		// only working mode would be the (unstable) single-process one.
 		{
 			std::string helperPath = macHelperExecutablePath();
-			if (!helperPath.empty() && access(helperPath.c_str(), X_OK) == 0) {
+			if (helperPath.empty()) {
+				// Couldn't resolve the running app bundle (no main bundle / URL).
+				fprintf(stderr,
+					"[webview_cef] could not resolve the app bundle path to locate "
+					"the CEF helper; multi-process CEF disabled.\n");
+			} else if (access(helperPath.c_str(), X_OK) == 0) {
 				CefString(&cefs.browser_subprocess_path) = helperPath;
 			} else {
 				// The host app hasn't embedded the "<App> Helper.app" subprocess

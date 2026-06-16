@@ -163,15 +163,18 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
         {
             values += ",CalculateNativeWinOcclusion";
         }
+#ifdef __APPLE__
         // Chromium 130 made the Rust "fontations" backend the default Skia font
         // rasterizer. It panics with an integer overflow (crash_in_rust_with_overflow
-        // in fontations_ffi BridgeBitmapGlyph) on certain glyphs — reproducible in
-        // both single- and multi-process CEF here. Fall back to the long-stable
-        // FreeType path until the backend matures.
+        // in fontations_ffi BridgeBitmapGlyph) on certain glyphs — reproduced in
+        // both single- and multi-process CEF on macOS. Fall back to the long-stable
+        // FreeType path. Scoped to macOS (like in-process-gpu): the panic was only
+        // diagnosed there; Linux can opt in once it's verified to need it.
         if (values.find("FontationsFontBackend") == std::string::npos)
         {
             values += ",FontationsFontBackend";
         }
+#endif
 
         command_line->AppendSwitchWithValue("disable-features", values);
         // for unsafe domain, add domain to whitelist

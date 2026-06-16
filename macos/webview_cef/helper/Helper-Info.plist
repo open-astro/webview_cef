@@ -35,7 +35,7 @@
 	<key>LSMinimumSystemVersion</key>
 	<string>10.15</string>
 	<key>LSUIElement</key>
-	<string>1</string>
+	<true/>
 	<key>NSSupportsAutomaticGraphicsSwitching</key>
 	<true/>
 </dict>

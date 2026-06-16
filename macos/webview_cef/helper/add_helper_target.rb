@@ -42,6 +42,19 @@ helper_ents    = "#{plugin_macos}/helper/helper.entitlements"
 
 # --- Helper target (drop existing first for idempotency) -----------------------
 if (old = project.targets.find { |t| t.name == helper_target })
+  # Remove the Runner's dependency on the old helper target (and its container
+  # proxy) BEFORE deleting the target. Otherwise a dangling PBXTargetDependency
+  # (its .target now nil) is left behind and the later add_dependency call crashes
+  # in the xcodeproj gem (dependency_for_target derefs dep.target.uuid).
+  runner.dependencies.dup.each do |dep|
+    if dep.target.nil? || dep.target == old
+      dep.target_proxy&.remove_from_project
+      dep.remove_from_project
+    end
+  end
+  # Drop the target's product (Helper.app) reference too so re-runs don't leave
+  # stale entries accumulating in the Products group.
+  old.product_reference&.remove_from_project
   old.remove_from_project
 end
 helper = project.new_target(:application, helper_target, :osx, '10.15')
