@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <cstdint>
 
+#include "include/cef_version.h"
 #include "include/base/cef_callback.h"
 #include "include/cef_app.h"
 #include "include/cef_parser.h"
@@ -580,10 +581,16 @@ void WebviewHandler::sendJavaScriptChannelCallBack(const bool error, const std::
 
         CefRefPtr<CefFrame> frame = bit->second.browser->GetMainFrame();
 
-        // CEF 130 returns the frame identifier as a string token (it was an
-        // int64 in older builds). Now that every platform is on CEF 130 the old
-        // per-OS split is gone — compare via the string form everywhere.
+        // CefFrame::GetIdentifier() returned an int64 through ~M121 and a string
+        // token from M122 on. Gate on the CEF version (not the OS) so this stays
+        // correct while platforms are on different CEF builds — Windows is still
+        // on CEF 101 (int64); macOS/Linux on 130 (string). It auto-switches when
+        // Windows migrates to 130 (see third/download.cmake).
+#if CHROME_VERSION_MAJOR >= 122
         bool identifierMatch = std::stoll(frame->GetIdentifier().ToString()) == frameIdInt;
+#else
+        bool identifierMatch = frame->GetIdentifier() == frameIdInt;
+#endif
         if (identifierMatch)
         {
             frame->SendProcessMessage(PID_RENDERER, message);
