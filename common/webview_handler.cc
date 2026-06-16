@@ -582,6 +582,11 @@ void WebviewHandler::sendJavaScriptChannelCallBack(const bool error, const std::
         int64_t frameIdInt = atoll(frameId.c_str());
 
         CefRefPtr<CefFrame> frame = bit->second.browser->GetMainFrame();
+        // GetMainFrame() can be null while the browser is loading or shutting
+        // down; bail before dereferencing it (GetIdentifier/SendProcessMessage).
+        if (!frame) {
+            return;
+        }
 
         // CefFrame::GetIdentifier() returned an int64 through ~M121 and a string
         // token from M122 on (CEF commit that switched CefFrame to a string id).
