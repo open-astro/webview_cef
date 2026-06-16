@@ -660,12 +660,19 @@ namespace webview_cef {
 					? "could not resolve the app bundle path to locate the CEF helper"
 					: "CEF helper not found at '" + helperPath +
 						"' (run add_helper_target.rb to embed it)";
-				// `app` is always constructed before startCEF is called; assert that
-				// invariant so a future regression fails loudly here with a clear
-				// message rather than as an opaque CEF crash (CEF would re-exec the
-				// main binary as a renderer because the fallback couldn't be applied).
-				CHECK(app) << "[webview_cef] startCEF reached with a null CefApp; "
-					"cannot apply the single-process fallback (" << reason << ")";
+				// `app` is always constructed before startCEF is called; this is a
+				// programmer-error invariant. DCHECK catches a regression in debug;
+				// in release, log and bail out of startCEF rather than hard-crashing
+				// (CHECK) or letting CEF re-exec the main binary as a renderer because
+				// the single-process fallback couldn't be applied.
+				if (!app) {
+					DCHECK(app) << "[webview_cef] startCEF reached with a null CefApp";
+					const std::string msg = "[webview_cef] " + reason +
+						", and the CefApp is null; aborting CEF initialization.";
+					LOG(ERROR) << msg;
+					std::cerr << msg << std::endl;
+					return;
+				}
 				if (app->GetProcessMode() == 3) {
 					// The host already asked for single-process (mode 3), so there's
 					// nothing to fall back to and no helper is expected — stay quiet.
