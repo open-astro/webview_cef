@@ -15,7 +15,11 @@
 #
 #   <Runner.xcodeproj>  e.g. macos/Runner.xcodeproj
 #   <AppName>           the Runner product name, e.g. "openastroara" — the helper
-#                       is named "<AppName> Helper"
+#                       is named "<AppName> Helper". MUST match the app's
+#                       CFBundleExecutable (= PRODUCT_NAME for a stock Flutter
+#                       app); the plugin derives the helper path from
+#                       CFBundleExecutable at runtime, so a mismatch makes the
+#                       helper unfindable and forces single-process mode.
 #   <plugin_macos_dir>  path (relative to the Runner.xcodeproj's parent dir) to
 #                       the plugin's macos/webview_cef dir, e.g.
 #                       ../packages/webview_cef/macos/webview_cef
@@ -122,9 +126,14 @@ helper.build_configurations.each do |c|
   s['CLANG_CXX_LANGUAGE_STANDARD']  = 'c++17'
   s['HEADER_SEARCH_PATHS']          = ['$(inherited)', cef_dir]
   s['LIBRARY_SEARCH_PATHS']         = ['$(inherited)', cef_dir]
-  # The framework is embedded in the OUTER app's Frameworks dir; from the helper
-  # executable (<App> Helper.app/Contents/MacOS/<App> Helper) that is four levels up.
-  s['LD_RUNPATH_SEARCH_PATHS']      = ['$(inherited)', '@executable_path/../../../..']
+  # The CEF framework is embedded in the OUTER app's Contents/Frameworks dir.
+  # From the helper executable (<App> Helper.app/Contents/MacOS/<App> Helper):
+  #   ..       -> Contents/        (of <App> Helper.app)
+  #   ../..    -> <App> Helper.app/
+  #   ../../.. -> <App>.app/Contents/Frameworks/   (where the CEF framework lives)
+  # (CefScopedLibraryLoader::LoadInHelper dlopens via a computed path, so this
+  # rpath is a belt-and-suspenders fallback.)
+  s['LD_RUNPATH_SEARCH_PATHS']      = ['$(inherited)', '@executable_path/../../..']
   s['OTHER_LDFLAGS']                = ['$(inherited)', '-lcef_dll_wrapper', '-framework', 'AppKit']
   s['SKIP_INSTALL']                 = 'YES'
   s['CODE_SIGN_STYLE']              = 'Automatic'
@@ -231,7 +240,12 @@ runner.build_configurations.each do |c|
     abort "  ! CODE_SIGN_ENTITLEMENTS '#{ents}' (#{c.name}) did not resolve to an existing file " \
           "(tried #{ents_path}). Merge the JIT entitlements manually or fix the path before re-running."
   end
-  plist = Xcodeproj::Plist.read_from_path(ents_path) || {}
+  # Abort (don't fall back to {}) if the plist can't be parsed: writing an empty
+  # hash back would erase the host app's existing entitlements (sandbox, network,
+  # …) and leave only the three CEF keys.
+  plist = Xcodeproj::Plist.read_from_path(ents_path)
+  abort "  ! could not parse #{ents_path} as a plist (#{c.name}); refusing to " \
+        "overwrite it. Merge the JIT entitlements manually." unless plist
   # disable-library-validation is incompatible with the App Sandbox for
   # distribution; if the host is sandboxed, warn rather than silently produce a
   # contradictory entitlement set (and the helper would also need app-sandbox +

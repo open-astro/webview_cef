@@ -122,7 +122,12 @@ ruby packages/webview_cef/macos/webview_cef/helper/add_helper_target.rb \
   macos/Runner.xcodeproj <AppName> packages/webview_cef/macos/webview_cef
 ```
 
-- `<AppName>` is your Runner product name; the helper is named `<AppName> Helper`.
+- `<AppName>` must be the Runner's product name **and** match its
+  `CFBundleExecutable` (for a stock Flutter app these are the same — `PRODUCT_NAME`
+  in `Runner/Configs/AppInfo.xcconfig`). The plugin derives the helper path at
+  runtime from `CFBundleExecutable`, so if `<AppName>` differs the helper won't be
+  found and the webview falls back to single-process mode. The helper is named
+  `<AppName> Helper`.
 - The last argument is the path (relative to the `macos/` dir) to the plugin's
   `macos/webview_cef` directory.
 
