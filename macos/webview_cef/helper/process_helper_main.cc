@@ -13,6 +13,8 @@
 // consumer that relies on the C++ JS message channel in the renderer would
 // instead pass its CefApp here (and link the common/ sources).
 
+#include <cstdio>
+
 #include "include/cef_app.h"
 #include "include/wrapper/cef_library_loader.h"
 
@@ -21,6 +23,11 @@ int main(int argc, char* argv[]) {
   // Frameworks dir, reached relative to this helper executable).
   CefScopedLibraryLoader library_loader;
   if (!library_loader.LoadInHelper()) {
+    // Make the failure visible: otherwise the browser side only sees an opaque
+    // subprocess-exit error, not that the CEF framework couldn't be loaded
+    // (wrong rpath / missing framework / entitlement mismatch).
+    fprintf(stderr, "[webview_cef helper] failed to load the CEF framework "
+                    "(LoadInHelper); check the embedded framework + rpath.\n");
     return 1;
   }
 

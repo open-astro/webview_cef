@@ -61,10 +61,12 @@ end
 
 runner_bundle_id = resolve_bundle_id(runner, macos_dir)
 if runner_bundle_id.nil? || runner_bundle_id.empty?
-  runner_bundle_id = 'com.example.app'
-  warn "  ! could not resolve the Runner's PRODUCT_BUNDLE_IDENTIFIER (checked the " \
-       "project + *.xcconfig); using '#{runner_bundle_id}'. Set the helper bundle " \
-       "id manually before distribution."
+  # Abort rather than fall back to a com.example.app placeholder: a bogus helper
+  # bundle id builds fine locally but fails notarization later with a non-obvious
+  # root cause. Better to stop and have the caller pass/define a real id.
+  abort "  ! could not resolve the Runner's PRODUCT_BUNDLE_IDENTIFIER (checked the " \
+        "project file + Runner/*.xcconfig). Set PRODUCT_BUNDLE_IDENTIFIER to a real " \
+        "id (e.g. in Runner/Configs/AppInfo.xcconfig) before re-running."
 end
 helper_bundle_id = "#{runner_bundle_id}.helper"
 

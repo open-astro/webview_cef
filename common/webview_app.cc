@@ -162,20 +162,9 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
         {
             values += ",SameSiteByDefaultCookies,CookiesWithoutSameSiteMustBeSecure";
         }
-        if (values.find("CalculateNativeWinOcclusion") == std::string::npos)
-        {
-            values += ",CalculateNativeWinOcclusion";
-        }
-#ifdef __APPLE__
-        // Chromium 130 made the Rust "fontations" backend the default Skia font
-        // rasterizer. It panics with an integer overflow (crash_in_rust_with_overflow
-        // in fontations_ffi BridgeBitmapGlyph) on certain glyphs — reproduced in
-        // both single- and multi-process CEF on macOS. Fall back to the long-stable
-        // FreeType path. Scoped to macOS (like in-process-gpu): the panic was only
-        // diagnosed there; Linux can opt in once it's verified to need it.
-        // Comma-delimited token check (not a substring search) so a future feature
-        // such as "NewFontationsFontBackend" can't be mistaken for an existing
-        // entry.
+        // Comma-delimited token check (not a substring search) so a feature name
+        // that merely *contains* another (e.g. "NewFontationsFontBackend") can't be
+        // mistaken for an existing entry.
         auto hasFeature = [&values](const char* tok) {
             const std::string t(tok);
             for (size_t p = values.find(t); p != std::string::npos; p = values.find(t, p + t.size())) {
@@ -186,13 +175,28 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
             }
             return false;
         };
+        auto appendFeature = [&values](const char* tok) {
+            values += (values.empty() ? "" : ",");
+            values += tok;
+        };
+        if (!hasFeature("CalculateNativeWinOcclusion"))
+        {
+            appendFeature("CalculateNativeWinOcclusion");
+        }
+#ifdef __APPLE__
+        // Chromium 130 made the Rust "fontations" backend the default Skia font
+        // rasterizer. It panics with an integer overflow (crash_in_rust_with_overflow
+        // in fontations_ffi BridgeBitmapGlyph) on certain glyphs — reproduced in
+        // both single- and multi-process CEF on macOS. Fall back to the long-stable
+        // FreeType path. Scoped to macOS (like in-process-gpu): the panic was only
+        // diagnosed there; Linux can opt in once it's verified to need it.
+        // NOTE: this is set on the browser-process command line only; CEF propagates
+        // --disable-features to renderer subprocesses (the Helper's CefExecuteProcess
+        // has no CefApp, so OnBeforeCommandLineProcessing never fires there), which is
+        // how the fix reaches the renderer where the panic actually occurs.
         if (!hasFeature("FontationsFontBackend"))
         {
-            // values is non-empty here (seeded with SameSiteByDefaultCookies
-            // above), but guard the separator anyway so a future reorder can't
-            // produce a leading-comma ",FontationsFontBackend".
-            values += (values.empty() ? "" : ",");
-            values += "FontationsFontBackend";
+            appendFeature("FontationsFontBackend");
         }
 #endif
 
