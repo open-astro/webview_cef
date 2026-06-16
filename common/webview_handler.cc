@@ -10,7 +10,10 @@
 #include <chrono>
 #include <unordered_map>
 #include <cstdint>
+#include <cstdlib>
+#include <cerrno>
 
+#include "include/cef_version.h"
 #include "include/base/cef_callback.h"
 #include "include/cef_app.h"
 #include "include/cef_parser.h"
@@ -579,11 +582,35 @@ void WebviewHandler::sendJavaScriptChannelCallBack(const bool error, const std::
         int64_t frameIdInt = atoll(frameId.c_str());
 
         CefRefPtr<CefFrame> frame = bit->second.browser->GetMainFrame();
+        // GetMainFrame() can be null while the browser is loading or shutting
+        // down; bail before dereferencing it (GetIdentifier/SendProcessMessage).
+        if (!frame) {
+            return;
+        }
 
-        // CEF 130 returns the frame identifier as a string token (it was an
-        // int64 in older builds). Now that every platform is on CEF 130 the old
-        // per-OS split is gone — compare via the string form everywhere.
-        bool identifierMatch = std::stoll(frame->GetIdentifier().ToString()) == frameIdInt;
+        // CefFrame::GetIdentifier() returned an int64 through ~M121 and a string
+        // token from M122 on (CEF commit that switched CefFrame to a string id).
+        // Gate on the CEF version (not the OS) so this stays correct while
+        // platforms are on different CEF builds — Windows is still on CEF 101
+        // (int64); macOS/Linux on 130 (string). It auto-switches when Windows
+        // migrates to 130 (see third/download.cmake). frameIdInt (from atoll
+        // above) and the M122+ token both assume a decimal identifier.
+        bool identifierMatch = false;
+#if CHROME_VERSION_MAJOR >= 122
+        // The token is decimal today; parse it without exceptions (CEF builds
+        // with -fno-exceptions, so std::stoll/try-catch won't compile) — a
+        // non-numeric or out-of-range identifier degrades to "no match" instead
+        // of crashing or wrapping.
+        const std::string idStr = frame->GetIdentifier().ToString();
+        char* end = nullptr;
+        errno = 0;
+        const long long parsed = std::strtoll(idStr.c_str(), &end, 10);
+        if (end != idStr.c_str() && *end == '\0' && errno == 0) {
+            identifierMatch = (parsed == frameIdInt);
+        }
+#else
+        identifierMatch = frame->GetIdentifier() == frameIdInt;
+#endif
         if (identifierMatch)
         {
             frame->SendProcessMessage(PID_RENDERER, message);
