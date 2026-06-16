@@ -188,19 +188,22 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
 			command_line->AppendSwitchWithValue("unsafely-treat-insecure-origin-as-secure",
                 m_strFilterDomain);
 		}
-    }
 
 #ifdef __APPLE__
-    command_line->AppendSwitch("use-mock-keychain");
-    // NOTE: single-process mode is intentionally NOT forced here anymore. It is a
-    // debug-only Chromium mode and is unstable for long-running WebGL/font work
-    // (renderer CHECK/abort after hours). macOS now runs multi-process via the
-    // bundled "<App> Helper.app" subprocess (see browser_subprocess_path in
+		// Route Chromium's keychain access to a mock so it doesn't prompt. Must
+		// stay inside the browser-process guard: in multi-process mode this
+		// callback also fires for each renderer/GPU subprocess, which should not
+		// receive this switch (CEF already propagates the browser process's own
+		// command line to its subprocesses).
+		command_line->AppendSwitch("use-mock-keychain");
+#endif
+    }
+
+    // NOTE: single-process mode is intentionally NOT forced on macOS anymore. It
+    // is a debug-only Chromium mode and is unstable for long-running WebGL/font
+    // work (renderer CHECK/abort after hours). macOS now runs multi-process via
+    // the bundled "<App> Helper.app" subprocess (see browser_subprocess_path in
     // WebviewPlugin::startCEF + the helper target the host app embeds).
-#endif
-#ifdef __linux__
-                                           
-#endif
 }
 
 void WebviewApp::OnContextInitialized()

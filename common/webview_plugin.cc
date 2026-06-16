@@ -5,6 +5,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <cstdio>
 #include <vector>
 #endif
@@ -594,7 +595,7 @@ namespace webview_cef {
 			}
 			return std::string();
 		}
-		char appPath[4096] = {0};
+		char appPath[PATH_MAX] = {0};
 		bool ok = CFURLGetFileSystemRepresentation(
 			bundleURL, true, (UInt8*)appPath, sizeof(appPath));
 		CFRelease(bundleURL);
