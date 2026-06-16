@@ -655,10 +655,16 @@ namespace webview_cef {
 					? "could not resolve the app bundle path to locate the CEF helper"
 					: "CEF helper not found at '" + helperPath +
 						"' (run add_helper_target.rb to embed it)";
-				if (app && app->GetProcessMode() == 3) {
+				// `app` is always constructed before startCEF is called; assert that
+				// invariant so a future regression fails loudly here with a clear
+				// message rather than as an opaque CEF crash (CEF would re-exec the
+				// main binary as a renderer because the fallback couldn't be applied).
+				CHECK(app) << "[webview_cef] startCEF reached with a null CefApp; "
+					"cannot apply the single-process fallback (" << reason << ")";
+				if (app->GetProcessMode() == 3) {
 					// The host already asked for single-process (mode 3), so there's
 					// nothing to fall back to and no helper is expected — stay quiet.
-				} else if (app) {
+				} else {
 					app->SetProcessMode(3); // appends --single-process for the browser
 					const std::string msg = "[webview_cef] " + reason +
 						"; falling back to single-process mode for now.";
@@ -666,16 +672,6 @@ namespace webview_cef {
 					// surfaced in a shipped Flutter build, whereas stderr shows up in
 					// the Xcode device log / Terminal.
 					LOG(WARNING) << msg;
-					std::cerr << msg << std::endl;
-				} else {
-					// Only reachable if startCEF runs before the app was created; the
-					// fallback can't be applied, so warn that CEF will likely crash
-					// rather than logging a "falling back" message that isn't true.
-					const std::string msg = "[webview_cef] " + reason +
-						", and the CefApp is null so single-process fallback cannot be "
-						"set; CEF will try to exec the main binary as a renderer and will "
-						"likely crash.";
-					LOG(ERROR) << msg;
 					std::cerr << msg << std::endl;
 				}
 			}

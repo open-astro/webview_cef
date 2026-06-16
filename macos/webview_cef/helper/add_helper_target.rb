@@ -51,8 +51,10 @@ def resolve_bundle_id(runner, macos_dir)
   Dir.glob(File.join(macos_dir, 'Runner', '**', '*.xcconfig')).sort.each do |xc|
     File.foreach(xc) do |line|
       if line =~ /^\s*PRODUCT_BUNDLE_IDENTIFIER\s*=\s*(\S+)/
-        val = Regexp.last_match(1).strip
-        return val unless val.include?('$')
+        # Strip a trailing inline "// comment" defensively (xcconfig only really
+        # supports whole-line comments, but be robust).
+        val = Regexp.last_match(1).strip.sub(%r{//.*\z}, '')
+        return val unless val.empty? || val.include?('$')
       end
     end
   end
@@ -139,6 +141,11 @@ end
 # the build works either way, but this avoids a confusing Helper.app vs
 # "<App> Helper.app" mismatch in the project).
 helper.product_reference.path = "#{helper_name}.app"
+
+# Order the helper's build configurations Debug, Profile, Release to match the
+# canonical Flutter Runner layout (new_target emits them in a different order).
+config_order = { 'Debug' => 0, 'Profile' => 1, 'Release' => 2 }
+helper.build_configuration_list.build_configurations.sort_by! { |c| config_order.fetch(c.name, 99) }
 
 # xcodeproj's new_target auto-links Cocoa.framework via an SDK-pinned path
 # (DEVELOPER_DIR/Platforms/.../MacOSX<ver>.sdk/...), which hardcodes the build
