@@ -157,14 +157,6 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
 
         //Support cross domain requests
         std::string values = command_line->GetSwitchValue("disable-features");
-        if (values == "")
-        {
-            values = "SameSiteByDefaultCookies,CookiesWithoutSameSiteMustBeSecure";
-        }
-        else
-        {
-            values += ",SameSiteByDefaultCookies,CookiesWithoutSameSiteMustBeSecure";
-        }
         // Comma-delimited token check (not a substring search) so a feature name
         // that merely *contains* another (e.g. "NewFontationsFontBackend") can't be
         // mistaken for an existing entry.
@@ -179,14 +171,14 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
             }
             return false;
         };
-        auto appendFeature = [&values](const char* tok) {
+        auto appendFeature = [&values, &hasFeature](const char* tok) {
+            if (hasFeature(tok)) return;        // don't duplicate an existing entry
             values += (values.empty() ? "" : ",");
             values += tok;
         };
-        if (!hasFeature("CalculateNativeWinOcclusion"))
-        {
-            appendFeature("CalculateNativeWinOcclusion");
-        }
+        appendFeature("SameSiteByDefaultCookies");
+        appendFeature("CookiesWithoutSameSiteMustBeSecure");
+        appendFeature("CalculateNativeWinOcclusion");
 #ifdef __APPLE__
         // Chromium 130 made the Rust "fontations" backend the default Skia font
         // rasterizer. It panics with an integer overflow (crash_in_rust_with_overflow
@@ -200,10 +192,7 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
         // how the fix reaches the renderer where the panic actually occurs.
         // TODO: remove this workaround once the upstream Chromium "fontations" font
         // backend stops panicking (re-test on each CEF/Chromium upgrade).
-        if (!hasFeature("FontationsFontBackend"))
-        {
-            appendFeature("FontationsFontBackend");
-        }
+        appendFeature("FontationsFontBackend");
 #endif
 
         command_line->AppendSwitchWithValue("disable-features", values);
