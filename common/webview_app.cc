@@ -197,6 +197,8 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
         // --disable-features to renderer subprocesses (the Helper's CefExecuteProcess
         // has no CefApp, so OnBeforeCommandLineProcessing never fires there), which is
         // how the fix reaches the renderer where the panic actually occurs.
+        // TODO: remove this workaround once the upstream Chromium "fontations" font
+        // backend stops panicking (re-test on each CEF/Chromium upgrade).
         if (!hasFeature("FontationsFontBackend"))
         {
             appendFeature("FontationsFontBackend");

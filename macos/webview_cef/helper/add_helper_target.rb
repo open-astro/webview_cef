@@ -215,8 +215,11 @@ runner.build_configurations.each do |c|
   # Ensure the Frameworks rpath is present (don't just set-if-absent): a project
   # that already defines LD_RUNPATH_SEARCH_PATHS without @executable_path/../Frameworks
   # would otherwise fail to dlopen the embedded CEF framework at runtime.
-  rpaths = Array(c.build_settings['LD_RUNPATH_SEARCH_PATHS'] || ['$(inherited)'])
-  rpaths = rpaths.split(' ') if rpaths.is_a?(String)
+  # xcodeproj returns this setting as an Array for multi-value entries but a
+  # space-separated String for single-value ones — handle both (Array() would wrap
+  # the String as one element and miss an already-present path, duplicating it).
+  raw_rpaths = c.build_settings['LD_RUNPATH_SEARCH_PATHS']
+  rpaths = raw_rpaths.is_a?(Array) ? raw_rpaths.dup : (raw_rpaths.nil? ? ['$(inherited)'] : raw_rpaths.split(' '))
   unless rpaths.include?('@executable_path/../Frameworks')
     rpaths << '@executable_path/../Frameworks'
   end
