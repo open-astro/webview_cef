@@ -648,16 +648,22 @@ namespace webview_cef {
 				// host relaunches the whole app as a renderer and crashes/hangs. Fall
 				// back to single-process mode instead so the webview still works
 				// (degraded, but not broken) until the helper is embedded.
-				if (helperPath.empty()) {
-					LOG(WARNING) << "[webview_cef] could not resolve the app bundle "
-						"path to locate the CEF helper; falling back to single-process mode.";
-				} else {
-					LOG(WARNING) << "[webview_cef] CEF helper not found at '" << helperPath
-						<< "' — run add_helper_target.rb to embed it; falling back to "
-						"single-process mode for now.";
-				}
+				const std::string reason = helperPath.empty()
+					? "could not resolve the app bundle path to locate the CEF helper"
+					: "CEF helper not found at '" + helperPath +
+						"' (run add_helper_target.rb to embed it)";
 				if (app) {
 					app->SetProcessMode(3); // appends --single-process for the browser
+					LOG(WARNING) << "[webview_cef] " << reason
+						<< "; falling back to single-process mode for now.";
+				} else {
+					// Only reachable if startCEF runs before the app was created; the
+					// fallback can't be applied, so warn that CEF will likely crash
+					// rather than logging a "falling back" message that isn't true.
+					LOG(ERROR) << "[webview_cef] " << reason
+						<< ", and the CefApp is null so single-process fallback cannot be "
+						"set; CEF will try to exec the main binary as a renderer and will "
+						"likely crash.";
 				}
 			}
 		}
