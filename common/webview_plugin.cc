@@ -574,8 +574,8 @@ namespace webview_cef {
 			return std::string();
 		}
 		std::string exeName;
-		CFStringRef exe = (CFStringRef)CFBundleGetValueForInfoDictionaryKey(
-			mainBundle, kCFBundleExecutableKey);
+		CFStringRef exe = reinterpret_cast<CFStringRef>(CFBundleGetValueForInfoDictionaryKey(
+			mainBundle, kCFBundleExecutableKey));
 		if (exe) {
 			// Size the buffer to the worst-case UTF-8 byte length (+1 for NUL) so
 			// multi-byte app names (e.g. CJK) aren't silently truncated.
@@ -601,7 +601,7 @@ namespace webview_cef {
 		}
 		char appPath[PATH_MAX] = {0};
 		bool ok = CFURLGetFileSystemRepresentation(
-			bundleURL, true, (UInt8*)appPath, sizeof(appPath));
+			bundleURL, true, reinterpret_cast<UInt8*>(appPath), sizeof(appPath));
 		CFRelease(bundleURL);
 		if (!ok) {
 			return std::string();

@@ -21,13 +21,13 @@
 /* End PBXAggregateTarget section */
 
 /* Begin PBXBuildFile section */
+		0D1314240CE33DBD4850D724 /* process_helper_main.cc in Sources */ = {isa = PBXBuildFile; fileRef = 32D2F0699648347B99CE3419 /* process_helper_main.cc */; };
 		335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */ = {isa = PBXBuildFile; fileRef = 335BBD1A22A9A15E00E9071D /* GeneratedPluginRegistrant.swift */; };
 		33CC10F62044A3C60003C045 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 33CC10F42044A3C60003C045 /* MainMenu.xib */; };
 		33CC11132044BFA00003C045 /* MainFlutterWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11122044BFA00003C045 /* MainFlutterWindow.swift */; };
-		495C8917509BA017ADD746A8 /* Helper.app in Embed CEF Helper */ = {isa = PBXBuildFile; fileRef = 6B6004DE763E6985029279EC /* Helper.app */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		4AD295C68A3127F0847D361F /* process_helper_main.cc in Sources */ = {isa = PBXBuildFile; fileRef = F7402BCB9A293BA0FDCC3DA4 /* process_helper_main.cc */; };
 		65A31E7A28F94DF70084A313 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 65A31E7928F94DF70084A313 /* Assets.xcassets */; };
 		65F3C825293609F800127D45 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65F3C824293609F800127D45 /* AppDelegate.swift */; };
+		6AAAE08093D5CB3C7FBEC874 /* webview_cef_example Helper.app in Embed CEF Helper */ = {isa = PBXBuildFile; fileRef = C8370BF9DFD2084F5DE3B48C /* webview_cef_example Helper.app */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
 		9BEC192FBCCC4448BE9CCEC2 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A4B5197F4C8A9CD3178DC66E /* Pods_Runner.framework */; };
 /* End PBXBuildFile section */
@@ -40,16 +40,27 @@
 			remoteGlobalIDString = 33CC111A2044C6BA0003C045;
 			remoteInfo = FLX;
 		};
-		4B3A7F01C4D84497CFE60E31 /* PBXContainerItemProxy */ = {
+		9AA679C4F747572DE160730D /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 33CC10E52044A3C60003C045 /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = 5370AEB1381150F834973D0F;
+			remoteGlobalIDString = 25699C33E8E5B377E7A0DEA8;
 			remoteInfo = Helper;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		1CBB9928EB6DF000BBBF8935 /* Embed CEF Helper */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				6AAAE08093D5CB3C7FBEC874 /* webview_cef_example Helper.app in Embed CEF Helper */,
+			);
+			name = "Embed CEF Helper";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		33CC110E2044A8840003C045 /* Bundle Framework */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -60,21 +71,11 @@
 			name = "Bundle Framework";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		E6FC6C0E7200876870B8AF28 /* Embed CEF Helper */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-				495C8917509BA017ADD746A8 /* Helper.app in Embed CEF Helper */,
-			);
-			name = "Embed CEF Helper";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		2F259BC255747F98B88D3DBF /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
+		32D2F0699648347B99CE3419 /* process_helper_main.cc */ = {isa = PBXFileReference; includeInIndex = 1; name = process_helper_main.cc; path = ../../macos/webview_cef/helper/process_helper_main.cc; sourceTree = "<group>"; };
 		333000ED22D3DE5D00554162 /* Warnings.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Warnings.xcconfig; sourceTree = "<group>"; };
 		335BBD1A22A9A15E00E9071D /* GeneratedPluginRegistrant.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GeneratedPluginRegistrant.swift; sourceTree = "<group>"; };
 		33CC10ED2044A3C60003C045 /* webview_cef_example.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = webview_cef_example.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -91,14 +92,13 @@
 		5C516FEBF47E87731E22BEE4 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		65A31E7928F94DF70084A313 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		65F3C824293609F800127D45 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		6B6004DE763E6985029279EC /* Helper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Helper.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		784666492D4C4C64000A1A5F /* FlutterFramework */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = FlutterFramework; path = ephemeral/Packages/.packages/FlutterFramework; sourceTree = "<group>"; };
 		78DABEA22ED26510000E7860 /* webview_cef */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = webview_cef; path = ../../../macos/webview_cef; sourceTree = "<group>"; };
 		78E0A7A72DC9AD7400C4905E /* FlutterGeneratedPluginSwiftPackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = FlutterGeneratedPluginSwiftPackage; path = ephemeral/Packages/FlutterGeneratedPluginSwiftPackage; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		A4B5197F4C8A9CD3178DC66E /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		F7402BCB9A293BA0FDCC3DA4 /* process_helper_main.cc */ = {isa = PBXFileReference; includeInIndex = 1; name = process_helper_main.cc; path = ../../macos/webview_cef/helper/process_helper_main.cc; sourceTree = "<group>"; };
+		C8370BF9DFD2084F5DE3B48C /* webview_cef_example Helper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "webview_cef_example Helper.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -111,7 +111,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		F8124A7AAF7E3D5EC4632978 /* Frameworks */ = {
+		CE5E4607C4566F33B55607FC /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -140,7 +140,7 @@
 				33CC10EE2044A3C60003C045 /* Products */,
 				D73912EC22F37F3D000D13A0 /* Frameworks */,
 				54C3949009643371D3BA5EEE /* Pods */,
-				EC1D4A318999DC8CDB2EA2D4 /* CEF Helper */,
+				9DF11B4D082E79A502747242 /* CEF Helper */,
 			);
 			sourceTree = "<group>";
 		};
@@ -148,7 +148,7 @@
 			isa = PBXGroup;
 			children = (
 				33CC10ED2044A3C60003C045 /* webview_cef_example.app */,
-				6B6004DE763E6985029279EC /* Helper.app */,
+				C8370BF9DFD2084F5DE3B48C /* webview_cef_example Helper.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -201,6 +201,14 @@
 			path = Pods;
 			sourceTree = "<group>";
 		};
+		9DF11B4D082E79A502747242 /* CEF Helper */ = {
+			isa = PBXGroup;
+			children = (
+				32D2F0699648347B99CE3419 /* process_helper_main.cc */,
+			);
+			name = "CEF Helper";
+			sourceTree = "<group>";
+		};
 		D73912EC22F37F3D000D13A0 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -209,17 +217,26 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		EC1D4A318999DC8CDB2EA2D4 /* CEF Helper */ = {
-			isa = PBXGroup;
-			children = (
-				F7402BCB9A293BA0FDCC3DA4 /* process_helper_main.cc */,
-			);
-			name = "CEF Helper";
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		25699C33E8E5B377E7A0DEA8 /* Helper */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1294F1DD9ACEC4E3199A69ED /* Build configuration list for PBXNativeTarget "Helper" */;
+			buildPhases = (
+				61B5F65006DF404B100EA9F0 /* Sources */,
+				CE5E4607C4566F33B55607FC /* Frameworks */,
+				0B8712621B728E3AB4299583 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Helper;
+			productName = Helper;
+			productReference = C8370BF9DFD2084F5DE3B48C /* webview_cef_example Helper.app */;
+			productType = "com.apple.product-type.application";
+		};
 		33CC10EC2044A3C60003C045 /* Runner */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 33CC10FB2044A3C60003C045 /* Build configuration list for PBXNativeTarget "Runner" */;
@@ -230,13 +247,13 @@
 				33CC10EB2044A3C60003C045 /* Resources */,
 				33CC110E2044A8840003C045 /* Bundle Framework */,
 				3399D490228B24CF009A79C7 /* ShellScript */,
-				E6FC6C0E7200876870B8AF28 /* Embed CEF Helper */,
+				1CBB9928EB6DF000BBBF8935 /* Embed CEF Helper */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				33CC11202044C79F0003C045 /* PBXTargetDependency */,
-				A1636BA67896705058CAB863 /* PBXTargetDependency */,
+				84E78DD5D1E173617FCA7CFB /* PBXTargetDependency */,
 			);
 			name = Runner;
 			packageProductDependencies = (
@@ -244,23 +261,6 @@
 			);
 			productName = Runner;
 			productReference = 33CC10ED2044A3C60003C045 /* webview_cef_example.app */;
-			productType = "com.apple.product-type.application";
-		};
-		5370AEB1381150F834973D0F /* Helper */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 46A0920DAEA3BF20118D6769 /* Build configuration list for PBXNativeTarget "Helper" */;
-			buildPhases = (
-				2FC68E475F38D85702D73CF9 /* Sources */,
-				F8124A7AAF7E3D5EC4632978 /* Frameworks */,
-				52D29E86775ED6C62009CA49 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = Helper;
-			productName = Helper;
-			productReference = 6B6004DE763E6985029279EC /* Helper.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -307,25 +307,25 @@
 			targets = (
 				33CC10EC2044A3C60003C045 /* Runner */,
 				33CC111A2044C6BA0003C045 /* Flutter Assemble */,
-				5370AEB1381150F834973D0F /* Helper */,
+				25699C33E8E5B377E7A0DEA8 /* Helper */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		0B8712621B728E3AB4299583 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		33CC10EB2044A3C60003C045 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				65A31E7A28F94DF70084A313 /* Assets.xcassets in Resources */,
 				33CC10F62044A3C60003C045 /* MainMenu.xib in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		52D29E86775ED6C62009CA49 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -395,14 +395,6 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		2FC68E475F38D85702D73CF9 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				4AD295C68A3127F0847D361F /* process_helper_main.cc in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		33CC10E92044A3C60003C045 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -410,6 +402,14 @@
 				65F3C825293609F800127D45 /* AppDelegate.swift in Sources */,
 				33CC11132044BFA00003C045 /* MainFlutterWindow.swift in Sources */,
 				335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		61B5F65006DF404B100EA9F0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0D1314240CE33DBD4850D724 /* process_helper_main.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -421,11 +421,11 @@
 			target = 33CC111A2044C6BA0003C045 /* Flutter Assemble */;
 			targetProxy = 33CC111F2044C79F0003C045 /* PBXContainerItemProxy */;
 		};
-		A1636BA67896705058CAB863 /* PBXTargetDependency */ = {
+		84E78DD5D1E173617FCA7CFB /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = Helper;
-			target = 5370AEB1381150F834973D0F /* Helper */;
-			targetProxy = 4B3A7F01C4D84497CFE60E31 /* PBXContainerItemProxy */;
+			target = 25699C33E8E5B377E7A0DEA8 /* Helper */;
+			targetProxy = 9AA679C4F747572DE160730D /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -442,6 +442,43 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		23053955207EB078310B06EB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CODE_SIGN_ENTITLEMENTS = ../../macos/webview_cef/helper/helper.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					../../macos/webview_cef/third/cef,
+				);
+				INFOPLIST_FILE = "../../macos/webview_cef/helper/Helper-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../../../..",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					../../macos/webview_cef/third/cef,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lcef_dll_wrapper",
+					"-framework",
+					AppKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.electronicdream.webviewCefExample.helper;
+				PRODUCT_NAME = "webview_cef_example Helper";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
 		338D0CE9231458BD00FA5F75 /* Profile */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 7AFA3C8E1D35360C0083082E /* Release.xcconfig */;
@@ -672,81 +709,7 @@
 			};
 			name = Release;
 		};
-		5DC4849EBFAF902F7E0A8181 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
-				CODE_SIGN_ENTITLEMENTS = ../../macos/webview_cef/helper/helper.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(inherited)",
-					../../macos/webview_cef/third/cef,
-				);
-				INFOPLIST_FILE = "../../macos/webview_cef/helper/Helper-Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../../../..",
-				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					../../macos/webview_cef/third/cef,
-				);
-				MACOSX_DEPLOYMENT_TARGET = 10.15;
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					"-lcef_dll_wrapper",
-					"-framework",
-					AppKit,
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.electronicdream.webviewCefExample.helper;
-				PRODUCT_NAME = "webview_cef_example Helper";
-				SDKROOT = macosx;
-				SKIP_INSTALL = YES;
-			};
-			name = Debug;
-		};
-		9A287D9C4BF63FD524660967 /* Profile */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
-				CODE_SIGN_ENTITLEMENTS = ../../macos/webview_cef/helper/helper.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(inherited)",
-					../../macos/webview_cef/third/cef,
-				);
-				INFOPLIST_FILE = "../../macos/webview_cef/helper/Helper-Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../../../..",
-				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					../../macos/webview_cef/third/cef,
-				);
-				MACOSX_DEPLOYMENT_TARGET = 10.15;
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					"-lcef_dll_wrapper",
-					"-framework",
-					AppKit,
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.electronicdream.webviewCefExample.helper;
-				PRODUCT_NAME = "webview_cef_example Helper";
-				SDKROOT = macosx;
-				SKIP_INSTALL = YES;
-			};
-			name = Profile;
-		};
-		F36E0348836142AF02D85FB5 /* Release */ = {
+		C2D8C65C12D9D8D53F44CD6E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -783,9 +746,56 @@
 			};
 			name = Release;
 		};
+		F71ED5B84E49DD90E04F0B92 /* Profile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CODE_SIGN_ENTITLEMENTS = ../../macos/webview_cef/helper/helper.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					../../macos/webview_cef/third/cef,
+				);
+				INFOPLIST_FILE = "../../macos/webview_cef/helper/Helper-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../../../..",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					../../macos/webview_cef/third/cef,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lcef_dll_wrapper",
+					"-framework",
+					AppKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.electronicdream.webviewCefExample.helper;
+				PRODUCT_NAME = "webview_cef_example Helper";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Profile;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		1294F1DD9ACEC4E3199A69ED /* Build configuration list for PBXNativeTarget "Helper" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C2D8C65C12D9D8D53F44CD6E /* Release */,
+				23053955207EB078310B06EB /* Debug */,
+				F71ED5B84E49DD90E04F0B92 /* Profile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		33CC10E82044A3C60003C045 /* Build configuration list for PBXProject "Runner" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -812,16 +822,6 @@
 				33CC111C2044C6BA0003C045 /* Debug */,
 				33CC111D2044C6BA0003C045 /* Release */,
 				338D0CEB231458BD00FA5F75 /* Profile */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		46A0920DAEA3BF20118D6769 /* Build configuration list for PBXNativeTarget "Helper" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				F36E0348836142AF02D85FB5 /* Release */,
-				5DC4849EBFAF902F7E0A8181 /* Debug */,
-				9A287D9C4BF63FD524660967 /* Profile */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

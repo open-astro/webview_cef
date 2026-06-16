@@ -153,6 +153,17 @@ against.
 > framework loading) — this is the standard CEF-on-macOS requirement, not
 > something specific to this plugin.
 
+> **Sandboxed hosts:** the example app is **not** sandboxed, and the script's
+> default entitlements assume that. If your host app enables the App Sandbox
+> (`com.apple.security.app-sandbox`), you need to do three extra things yourself:
+> (1) add `com.apple.security.network.client` to the **host** (the browser
+> process opens the sockets, so without it no URL loads); (2) give the **helper**
+> both `com.apple.security.app-sandbox` and `com.apple.security.inherit` so it
+> joins the host's sandbox container — a sandboxed host with a non-sandboxed
+> nested helper fails to launch the child; and (3) be aware that
+> `disable-library-validation` is incompatible with sandboxed App Store
+> distribution. The script warns when it merges into sandboxed entitlements.
+
 > Offscreen (windowless) rendering uses ANGLE's SwiftShader for WebGL with an
 > in-process GPU, and disables Chromium 130's Rust `fontations` font backend
 > (it panics on certain glyphs); both are handled inside the plugin.

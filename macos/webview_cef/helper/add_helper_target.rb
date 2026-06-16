@@ -131,6 +131,13 @@ helper.build_configurations.each do |c|
   s.delete('CLANG_ENABLE_OBJC_WEAK')
 end
 
+# new_target names the product reference "Helper.app" (after the target name),
+# but PRODUCT_NAME builds "<App> Helper.app". Align the product reference so the
+# pbxproj is self-consistent (the embed phase resolves the product by target, so
+# the build works either way, but this avoids a confusing Helper.app vs
+# "<App> Helper.app" mismatch in the project).
+helper.product_reference.path = "#{helper_name}.app"
+
 # xcodeproj's new_target auto-links Cocoa.framework via an SDK-pinned path
 # (DEVELOPER_DIR/Platforms/.../MacOSX<ver>.sdk/...), which hardcodes the build
 # machine's SDK version and makes the project fail to build on any other SDK. The
@@ -187,16 +194,26 @@ host_keys = %w[
 ]
 
 runner.build_configurations.each do |c|
-  c.build_settings['LD_RUNPATH_SEARCH_PATHS'] ||= ['$(inherited)', '@executable_path/../Frameworks']
+  # Ensure the Frameworks rpath is present (don't just set-if-absent): a project
+  # that already defines LD_RUNPATH_SEARCH_PATHS without @executable_path/../Frameworks
+  # would otherwise fail to dlopen the embedded CEF framework at runtime.
+  rpaths = Array(c.build_settings['LD_RUNPATH_SEARCH_PATHS'] || ['$(inherited)'])
+  rpaths = rpaths.split(' ') if rpaths.is_a?(String)
+  unless rpaths.include?('@executable_path/../Frameworks')
+    rpaths << '@executable_path/../Frameworks'
+  end
+  c.build_settings['LD_RUNPATH_SEARCH_PATHS'] = rpaths
+
   ents = c.build_settings['CODE_SIGN_ENTITLEMENTS']
   if ents.nil? || ents.to_s.strip.empty?
     c.build_settings['CODE_SIGN_ENTITLEMENTS'] = "#{plugin_macos}/helper/app.entitlements"
     next
   end
   # Resolve the entitlements path (relative to the Runner.xcodeproj parent dir)
-  # and merge the required keys into the existing plist. $(SRCROOT)/$(PROJECT_DIR)
-  # both resolve to that same dir for a Flutter Runner project.
-  resolved = ents.to_s.delete('"').gsub(/\$\((?:SRCROOT|SOURCE_ROOT|PROJECT_DIR)\)/, '.')
+  # and merge the required keys into the existing plist. $(SRCROOT)/$(PROJECT_DIR)/
+  # $(SOURCE_ROOT) all resolve to that same dir for a Flutter Runner project;
+  # accept both $(...) and ${...} forms.
+  resolved = ents.to_s.delete('"').gsub(/\$[({](?:SRCROOT|SOURCE_ROOT|PROJECT_DIR)[)}]/, '.')
   ents_path = File.expand_path(resolved, macos_dir)
   # Abort (don't silently skip) on an unresolved path — skipping would leave the
   # host app without the JIT/library-validation entitlements and surface only as
@@ -206,6 +223,16 @@ runner.build_configurations.each do |c|
           "(tried #{ents_path}). Merge the JIT entitlements manually or fix the path before re-running."
   end
   plist = Xcodeproj::Plist.read_from_path(ents_path) || {}
+  # disable-library-validation is incompatible with the App Sandbox for
+  # distribution; if the host is sandboxed, warn rather than silently produce a
+  # contradictory entitlement set (and the helper would also need app-sandbox +
+  # inherit — see the README "sandboxed hosts" note).
+  if plist['com.apple.security.app-sandbox'] == true
+    warn "  ! #{File.basename(ents_path)} (#{c.name}) enables the App Sandbox; adding " \
+         "disable-library-validation produces a combination incompatible with sandboxed " \
+         "distribution. A sandboxed host also needs the helper to carry app-sandbox + " \
+         "com.apple.security.inherit. See the README \"sandboxed hosts\" note."
+  end
   added = host_keys.reject { |k| plist[k] == true }
   next if added.empty?
   added.each { |k| plist[k] = true }
