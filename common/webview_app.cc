@@ -205,11 +205,13 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
 		}
 
 #ifdef __APPLE__
-		// Route Chromium's keychain access to a mock so it doesn't prompt. Must
-		// stay inside the browser-process guard: in multi-process mode this
-		// callback also fires for each renderer/GPU subprocess, which should not
-		// receive this switch (CEF already propagates the browser process's own
-		// command line to its subprocesses).
+		// Route Chromium's keychain access to a mock so it doesn't prompt. Scoped to
+		// the browser process intentionally: on macOS keychain access (password /
+		// cookie / cert storage) is a browser-process responsibility — the
+		// renderer/GPU subprocesses don't talk to the keychain directly — so the
+		// mock only needs to be set here. (This callback fires per process type, so
+		// without the guard the switch would also be appended to every subprocess
+		// command line unnecessarily.)
 		command_line->AppendSwitch("use-mock-keychain");
 #endif
     }
