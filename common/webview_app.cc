@@ -178,7 +178,12 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
         };
         appendFeature("SameSiteByDefaultCookies");
         appendFeature("CookiesWithoutSameSiteMustBeSecure");
+#ifdef _WIN32
+        // Native window-occlusion tracking is a Windows-only Chromium feature
+        // (it can pause rendering for "occluded" offscreen windows); disabling it
+        // is a no-op elsewhere, so only touch it on Windows.
         appendFeature("CalculateNativeWinOcclusion");
+#endif
 #ifdef __APPLE__
         // Chromium 130 made the Rust "fontations" backend the default Skia font
         // rasterizer. It panics with an integer overflow (crash_in_rust_with_overflow
@@ -186,10 +191,13 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
         // both single- and multi-process CEF on macOS. Fall back to the long-stable
         // FreeType path. Scoped to macOS (like in-process-gpu): the panic was only
         // diagnosed there; Linux can opt in once it's verified to need it.
-        // NOTE: this is set on the browser-process command line only; CEF propagates
-        // --disable-features to renderer subprocesses (the Helper's CefExecuteProcess
-        // has no CefApp, so OnBeforeCommandLineProcessing never fires there), which is
-        // how the fix reaches the renderer where the panic actually occurs.
+        // NOTE: this only runs in the browser process (OnBeforeCommandLineProcessing
+        // here, process_type empty). In this plugin the Helper runs
+        // CefExecuteProcess with a NULL CefApp, so this callback doesn't fire in any
+        // subprocess — the fix still reaches the renderer because Chromium copies
+        // --disable-features onto each child process's command line for feature-state
+        // consistency. (So renderer-only feature flags can't be added via this
+        // callback in this design — they'd need the helper to pass its own CefApp.)
         // TODO: remove this workaround once the upstream Chromium "fontations" font
         // backend stops panicking (re-test on each CEF/Chromium upgrade).
         appendFeature("FontationsFontBackend");

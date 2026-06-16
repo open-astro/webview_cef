@@ -28,7 +28,11 @@
 # framework at runtime (CefScopedLibraryLoader::LoadInHelper), so it needs no
 # framework link — just the wrapper, headers, an rpath to the embedded framework,
 # and the JIT entitlements.
-require 'xcodeproj'
+begin
+  require 'xcodeproj'
+rescue LoadError
+  abort "missing the 'xcodeproj' gem — install it with:  gem install xcodeproj"
+end
 
 proj_path, app_name, plugin_macos = ARGV
 abort 'usage: add_helper_target.rb <Runner.xcodeproj> <AppName> <plugin_macos_dir>' unless proj_path && app_name && plugin_macos
