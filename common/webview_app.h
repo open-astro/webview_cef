@@ -38,6 +38,7 @@ public:
         const CefString& process_type,
         CefRefPtr<CefCommandLine> command_line) override;
     void SetProcessMode(uint32_t uMode);
+    uint32_t GetProcessMode() const { return m_uMode; }
     void SetEnableGPU(bool bEnable);
     void OnContextInitialized() override;
     // CefRefPtr<CefClient> GetDefaultClient() override;

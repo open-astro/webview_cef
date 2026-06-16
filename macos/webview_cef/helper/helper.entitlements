@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Entitlements for the CEF subprocess helper(s). V8 needs JIT; the helper
-     loads the (separately-signed) CEF framework, so library validation is off. -->
+     loads the (separately-signed) CEF framework, so library validation is off.
+     No network entitlement is intentionally granted: in CEF's multi-process
+     model the renderer/GPU helpers don't open sockets directly — network I/O
+     goes through the browser process over IPC. A host needing a networking
+     utility subprocess under hardened runtime would add it to a dedicated
+     helper variant. -->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>

@@ -632,6 +632,9 @@ namespace webview_cef {
 		// only working mode would be the (unstable) single-process one.
 		{
 			std::string helperPath = macHelperExecutablePath();
+			// There's a benign TOCTOU window between this check and CEF exec-ing the
+			// helper, but the helper lives inside our own (SIP/code-signed) app
+			// bundle, so it isn't an adversarial path.
 			if (!helperPath.empty() && faccessat(AT_FDCWD, helperPath.c_str(), X_OK, AT_EACCESS) == 0) {
 				CefString(&cefs.browser_subprocess_path) = helperPath;
 				// Log the resolved path even on success: the helper name is derived
@@ -652,7 +655,10 @@ namespace webview_cef {
 					? "could not resolve the app bundle path to locate the CEF helper"
 					: "CEF helper not found at '" + helperPath +
 						"' (run add_helper_target.rb to embed it)";
-				if (app) {
+				if (app && app->GetProcessMode() == 3) {
+					// The host already asked for single-process (mode 3), so there's
+					// nothing to fall back to and no helper is expected — stay quiet.
+				} else if (app) {
 					app->SetProcessMode(3); // appends --single-process for the browser
 					LOG(WARNING) << "[webview_cef] " << reason
 						<< "; falling back to single-process mode for now.";

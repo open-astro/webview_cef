@@ -4,6 +4,11 @@
 # multi-process (the default/stable mode) instead of single-process.
 #
 # Idempotent: re-running updates the existing target rather than duplicating it.
+# Note: it tears down and recreates the Helper target, so each run regenerates
+# the target's object UUIDs — the end state is convergent (no duplication / dead
+# objects), but re-running produces a non-empty project.pbxproj git diff even
+# when nothing substantive changed. Run it once and commit the result; don't
+# expect byte-stable output across runs (e.g. in a CI verify step).
 #
 # Usage:
 #   ruby add_helper_target.rb <Runner.xcodeproj> <AppName> <plugin_macos_dir>
