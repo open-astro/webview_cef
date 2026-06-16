@@ -2,6 +2,7 @@
 
 #ifdef OS_MAC
 #include <include/wrapper/cef_library_loader.h>
+#include <include/base/cef_logging.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -633,6 +634,11 @@ namespace webview_cef {
 			std::string helperPath = macHelperExecutablePath();
 			if (!helperPath.empty() && faccessat(AT_FDCWD, helperPath.c_str(), X_OK, AT_EACCESS) == 0) {
 				CefString(&cefs.browser_subprocess_path) = helperPath;
+				// Log the resolved path even on success: the helper name is derived
+				// from kCFBundleExecutableKey and must match the PRODUCT_NAME the
+				// host set via add_helper_target.rb, so making it auditable helps
+				// diagnose a name mismatch.
+				LOG(INFO) << "[webview_cef] using CEF helper subprocess: " << helperPath;
 			} else {
 				// No usable helper bundle: either the app path couldn't be resolved,
 				// or the host app hasn't embedded "<App> Helper.app" (run
@@ -643,15 +649,12 @@ namespace webview_cef {
 				// back to single-process mode instead so the webview still works
 				// (degraded, but not broken) until the helper is embedded.
 				if (helperPath.empty()) {
-					fprintf(stderr,
-						"[webview_cef] could not resolve the app bundle path to locate "
-						"the CEF helper; falling back to single-process mode.\n");
+					LOG(WARNING) << "[webview_cef] could not resolve the app bundle "
+						"path to locate the CEF helper; falling back to single-process mode.";
 				} else {
-					fprintf(stderr,
-						"[webview_cef] CEF helper not found at '%s' — run "
-						"add_helper_target.rb to embed it; falling back to "
-						"single-process mode for now.\n",
-						helperPath.c_str());
+					LOG(WARNING) << "[webview_cef] CEF helper not found at '" << helperPath
+						<< "' — run add_helper_target.rb to embed it; falling back to "
+						"single-process mode for now.";
 				}
 				if (app) {
 					app->SetProcessMode(3); // appends --single-process for the browser

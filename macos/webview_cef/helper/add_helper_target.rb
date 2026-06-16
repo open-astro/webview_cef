@@ -92,6 +92,10 @@ helper.build_configurations.each do |c|
   s['SKIP_INSTALL']                 = 'YES'
   s['CODE_SIGN_STYLE']              = 'Automatic'
   s['ENABLE_HARDENED_RUNTIME']      = 'YES'
+  # xcodeproj's new_target seeds CLANG_ENABLE_OBJC_WEAK = NO; the helper is pure
+  # C++ so it's irrelevant — drop it so it doesn't confuse readers and inherits
+  # the project/Xcode default.
+  s.delete('CLANG_ENABLE_OBJC_WEAK')
 end
 
 # xcodeproj's new_target auto-links Cocoa.framework via an SDK-pinned path
@@ -107,6 +111,12 @@ project.objects.select { |o|
   project.objects.select { |o| o.isa == 'PBXBuildFile' && o.file_ref == ref }.each(&:remove_from_project)
   ref.remove_from_project
 end
+# new_target also leaves an empty "OS X" group (it had held Cocoa.framework);
+# drop it once empty so it doesn't litter the navigator. Search all groups, not
+# just top-level ones, since the gem nests it.
+project.objects.select { |o|
+  o.isa == 'PBXGroup' && o.display_name == 'OS X' && o.children.empty?
+}.each(&:remove_from_project)
 
 # Place the helper source in a dedicated "CEF Helper" group rather than the
 # project root, so it doesn't clutter the navigator of every consumer. Drop any
