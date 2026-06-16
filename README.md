@@ -133,14 +133,22 @@ The script is idempotent — re-running updates the existing target. It:
   runtime via `CefScopedLibraryLoader::LoadInHelper`;
 - adds an **Embed CEF Helper** copy-files phase so the helper is bundled into
   `Runner.app/Contents/Frameworks` and code-signed on copy;
-- merges the JIT entitlements V8 requires (`allow-jit`,
-  `allow-unsigned-executable-memory`, `disable-library-validation`) into both the
-  helper and the host app.
+- merges the JIT entitlements V8/CEF require (`allow-jit`,
+  `allow-unsigned-executable-memory`, `disable-library-validation`) into the
+  helper and into the host app's existing entitlements plist(s) — it edits the
+  `Runner/{DebugProfile,Release}.entitlements` your project already references,
+  not just the build setting.
 
 The plugin discovers the helper automatically (`browser_subprocess_path` is
 derived from the running app bundle), so no further code changes are needed. See
 `example/macos/Runner.xcodeproj` for a project the script has already been run
 against.
+
+> **Distribution note:** `disable-library-validation` (needed so the host
+> process can `dlopen` the separately-signed CEF framework) together with
+> `allow-jit` is **incompatible with Mac App Store** distribution. This is fine
+> for Developer-ID / direct distribution (notarization is unaffected), which is
+> how CEF apps normally ship.
 
 > Offscreen (windowless) rendering uses ANGLE's SwiftShader for WebGL with an
 > in-process GPU, and disables Chromium 130's Rust `fontations` font backend

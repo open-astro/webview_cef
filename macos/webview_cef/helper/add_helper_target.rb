@@ -40,6 +40,15 @@ helper_src     = "#{plugin_macos}/helper/process_helper_main.cc"
 helper_plist   = "#{plugin_macos}/helper/Helper-Info.plist"
 helper_ents    = "#{plugin_macos}/helper/helper.entitlements"
 
+# Validate the plugin inputs up front (paths are relative to the Runner.xcodeproj
+# parent dir) so a wrong <plugin_macos_dir> fails here with a clear message
+# instead of as a confusing Xcode build error later.
+{ 'process_helper_main.cc' => helper_src, 'Helper-Info.plist' => helper_plist,
+  'helper.entitlements' => helper_ents }.each do |label, rel|
+  abort "missing #{label} at '#{File.join(macos_dir, rel)}' — is <plugin_macos_dir> ('#{plugin_macos}') correct?" \
+    unless File.exist?(File.join(macos_dir, rel))
+end
+
 # --- Helper target (drop existing first for idempotency) -----------------------
 if (old = project.targets.find { |t| t.name == helper_target })
   # Remove the Runner's dependency on the old helper target (and its container
@@ -96,12 +105,39 @@ helper_product = helper.product_reference
 bf = embed.add_file_reference(helper_product)
 bf.settings = { 'ATTRIBUTES' => ['CodeSignOnCopy', 'RemoveHeadersOnCopy'] }
 
-# Make sure the Runner app has the JIT entitlements merged in (V8). We only add
-# the keys if the Runner already has an entitlements file; otherwise we point it
-# at the plugin's app.entitlements template.
+# The host app needs JIT + framework-loading entitlements (V8 JIT, and
+# disable-library-validation so the separately-signed CEF framework can be
+# dlopen'd). A standard Flutter app already has CODE_SIGN_ENTITLEMENTS pointing at
+# Runner/{DebugProfile,Release}.entitlements, so we MERGE the keys into whatever
+# plist each build configuration uses rather than only setting the build setting
+# (which would be a no-op when one is already configured). Falls back to the
+# plugin's app.entitlements template only for a configuration that has none.
+host_keys = %w[
+  com.apple.security.cs.allow-jit
+  com.apple.security.cs.allow-unsigned-executable-memory
+  com.apple.security.cs.disable-library-validation
+]
+
 runner.build_configurations.each do |c|
   c.build_settings['LD_RUNPATH_SEARCH_PATHS'] ||= ['$(inherited)', '@executable_path/../Frameworks']
-  c.build_settings['CODE_SIGN_ENTITLEMENTS'] ||= "#{plugin_macos}/helper/app.entitlements"
+  ents = c.build_settings['CODE_SIGN_ENTITLEMENTS']
+  if ents.nil? || ents.to_s.strip.empty?
+    c.build_settings['CODE_SIGN_ENTITLEMENTS'] = "#{plugin_macos}/helper/app.entitlements"
+    next
+  end
+  # Resolve the entitlements path (relative to the Runner.xcodeproj parent dir)
+  # and merge the required keys into the existing plist.
+  ents_path = File.expand_path(ents.to_s.gsub(/\$\(SRCROOT\)/, '.').delete('"'), macos_dir)
+  unless File.exist?(ents_path)
+    warn "  ! CODE_SIGN_ENTITLEMENTS '#{ents}' not found at #{ents_path}; skipping entitlement merge for #{c.name}"
+    next
+  end
+  plist = Xcodeproj::Plist.read_from_path(ents_path) || {}
+  added = host_keys.reject { |k| plist[k] == true }
+  next if added.empty?
+  added.each { |k| plist[k] = true }
+  Xcodeproj::Plist.write_to_path(plist, ents_path)
+  puts "  merged #{added.size} CEF entitlement(s) into #{File.basename(ents_path)} (#{c.name})"
 end
 
 project.save
