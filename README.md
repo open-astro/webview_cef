@@ -104,7 +104,45 @@ example app.
 | Linux | **130.1.2** (chromium-130) | `third/download.cmake` (Spotify CDN) |
 | Windows | 101.0.18 (chromium-101) | `third/download.cmake` (legacy prebuilt) — **migration to 130 pending** (needs `windows/CMakeLists.txt` rewritten to build the wrapper from the raw Spotify dist, as Linux does, and a Windows build to verify) |
 
-> Note: Currently the project has not been enabled with multi process support due to debug convenience. If you want to enable multi process support, you may want to enable multi process mode by changing the implementation and build your own helper bundle. (Finding a more elegant way in the future.)
+#### Multi-process (macOS helper bundle)
+
+macOS now runs CEF **multi-process** (the stable, default Chromium model): the
+renderer runs in a separate `<App> Helper.app` subprocess instead of being
+forced into the browser process. Single-process mode was a debug convenience
+and is unstable for long-running WebGL/font workloads (the renderer eventually
+hits a CHECK/abort).
+
+To wire the helper subprocess into your own host app, run the injection script
+against your Flutter `Runner.xcodeproj` once:
+
+```sh
+ruby packages/webview_cef/macos/webview_cef/helper/add_helper_target.rb \
+  macos/Runner.xcodeproj <AppName> packages/webview_cef/macos/webview_cef
+```
+
+- `<AppName>` is your Runner product name; the helper is named `<AppName> Helper`.
+- The last argument is the path (relative to the `macos/` dir) to the plugin's
+  `macos/webview_cef` directory.
+
+The script is idempotent — re-running updates the existing target. It:
+
+- adds a `Helper` application target (`<AppName> Helper`) that links
+  `libcef_dll_wrapper` + AppKit and `dlopen`s the embedded CEF framework at
+  runtime via `CefScopedLibraryLoader::LoadInHelper`;
+- adds an **Embed CEF Helper** copy-files phase so the helper is bundled into
+  `Runner.app/Contents/Frameworks` and code-signed on copy;
+- merges the JIT entitlements V8 requires (`allow-jit`,
+  `allow-unsigned-executable-memory`, `disable-library-validation`) into both the
+  helper and the host app.
+
+The plugin discovers the helper automatically (`browser_subprocess_path` is
+derived from the running app bundle), so no further code changes are needed. See
+`example/macos/Runner.xcodeproj` for a project the script has already been run
+against.
+
+> Offscreen (windowless) rendering uses ANGLE's SwiftShader for WebGL with an
+> in-process GPU, and disables Chromium 130's Rust `fontations` font backend
+> (it panics on certain glyphs); both are handled inside the plugin.
 
 ### Linux <img src="https://1000logos.net/wp-content/uploads/2017/03/LINUX-LOGO.png" width="16">
 
@@ -125,7 +163,7 @@ For Linux, just adding `webview_cef` to your `pubspec.yaml` (e.g. by running `fl
 - [x] Release to pub
 - [x] Trackpad support
 - [ ] Better macOS binary distribution
-- [ ] Easier way to integrate macOS helper bundles(multi process)
+- [x] Easier way to integrate macOS helper bundles(multi process) — `add_helper_target.rb`
 - [x] devTools support
 
 ## Demo

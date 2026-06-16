@@ -1,3 +1,8 @@
+## Unreleased (open-astro fork)
+- [macOS] Upgraded CEF/Chromium to **130.1.2** (matching Linux) with Swift Package Manager support (CocoaPods kept as fallback); offscreen WebGL via ANGLE SwiftShader.
+- [macOS] Switched from forced single-process to the stable **multi-process** model: the renderer runs in a `<App> Helper.app` subprocess. Added `add_helper_target.rb` to inject the helper target + embed phase + JIT entitlements into a host app's `Runner.xcodeproj` (no manual pbxproj editing).
+- [macOS] Fixed offscreen GPU launch failure (run GPU in-process under SwiftShader) and disabled Chromium 130's Rust `fontations` font backend, which panicked on certain glyphs (`crash_in_rust_with_overflow`) in both single- and multi-process modes.
+
 ## 0.2.0
 - Linux support!
 - Multiple instances support.
