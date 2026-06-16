@@ -115,12 +115,16 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
 			command_line->AppendSwitch("disable-gpu-compositing");
 			command_line->AppendSwitchWithValue("use-angle", "swiftshader");
 			command_line->AppendSwitch("enable-unsafe-swiftshader");
+#ifdef __APPLE__
 			// Run the GL/GPU work in the browser process. The renderer still runs
-			// out-of-process (the part that was crashing), but a separate GPU
-			// *subprocess* fails to launch under offscreen software rendering
+			// out-of-process (the part that was crashing), but on macOS a separate
+			// GPU *subprocess* fails to launch under offscreen software rendering
 			// (gpu_process_host error 1003 -> "GPU process isn't usable"). Software
 			// SwiftShader has no real GPU to isolate, so in-process is correct here.
+			// Scoped to macOS: the failure was only diagnosed there, and Linux's
+			// out-of-process GPU path is already verified, so don't change it.
 			command_line->AppendSwitch("in-process-gpu");
+#endif
 		}
 
 		command_line->AppendSwitch("disable-web-security");                                     //disable web security

@@ -65,6 +65,9 @@ helper.build_configurations.each do |c|
   s['ENABLE_HARDENED_RUNTIME']      = 'YES'
 end
 
+# Drop any stale file reference from a previous run so re-running doesn't leave
+# orphaned process_helper_main.cc entries in the project's main group.
+project.main_group.files.select { |f| f.path == helper_src }.each(&:remove_from_project)
 src_ref = project.main_group.new_file(helper_src)
 helper.source_build_phase.add_file_reference(src_ref)
 

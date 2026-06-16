@@ -3,6 +3,9 @@
 #ifdef OS_MAC
 #include <include/wrapper/cef_library_loader.h>
 #include <CoreFoundation/CoreFoundation.h>
+#include <unistd.h>
+#include <cstdio>
+#include <vector>
 #endif
 
 #include <math.h>
@@ -571,9 +574,13 @@ namespace webview_cef {
 		CFStringRef exe = (CFStringRef)CFBundleGetValueForInfoDictionaryKey(
 			mainBundle, kCFBundleExecutableKey);
 		if (exe) {
-			char buf[256] = {0};
-			if (CFStringGetCString(exe, buf, sizeof(buf), kCFStringEncodingUTF8)) {
-				exeName = buf;
+			// Size the buffer to the worst-case UTF-8 byte length (+1 for NUL) so
+			// multi-byte app names (e.g. CJK) aren't silently truncated.
+			CFIndex maxBytes = CFStringGetMaximumSizeForEncoding(
+				CFStringGetLength(exe), kCFStringEncodingUTF8) + 1;
+			std::vector<char> buf(static_cast<size_t>(maxBytes), 0);
+			if (CFStringGetCString(exe, buf.data(), maxBytes, kCFStringEncodingUTF8)) {
+				exeName = buf.data();
 			}
 		}
 		CFURLRef bundleURL = CFBundleCopyBundleURL(mainBundle);
@@ -616,8 +623,18 @@ namespace webview_cef {
 		// only working mode would be the (unstable) single-process one.
 		{
 			std::string helperPath = macHelperExecutablePath();
-			if (!helperPath.empty()) {
+			if (!helperPath.empty() && access(helperPath.c_str(), X_OK) == 0) {
 				CefString(&cefs.browser_subprocess_path) = helperPath;
+			} else {
+				// The host app hasn't embedded the "<App> Helper.app" subprocess
+				// (run macos/webview_cef/helper/add_helper_target.rb against its
+				// Runner.xcodeproj). Leaving browser_subprocess_path unset lets CEF
+				// fall back to its default rather than pointing at a missing binary,
+				// but multi-process subprocesses will not launch until it's embedded.
+				fprintf(stderr,
+					"[webview_cef] CEF helper not found at '%s' — run "
+					"add_helper_target.rb to embed it; multi-process CEF disabled.\n",
+					helperPath.c_str());
 			}
 		}
 #else

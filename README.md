@@ -113,9 +113,11 @@ and is unstable for long-running WebGL/font workloads (the renderer eventually
 hits a CHECK/abort).
 
 To wire the helper subprocess into your own host app, run the injection script
-against your Flutter `Runner.xcodeproj` once:
+against your Flutter `Runner.xcodeproj` once. It needs the [`xcodeproj`](https://rubygems.org/gems/xcodeproj)
+gem (`gem install xcodeproj`):
 
 ```sh
+gem install xcodeproj   # one-time, if not already installed
 ruby packages/webview_cef/macos/webview_cef/helper/add_helper_target.rb \
   macos/Runner.xcodeproj <AppName> packages/webview_cef/macos/webview_cef
 ```
