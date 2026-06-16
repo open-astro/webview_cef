@@ -10,7 +10,8 @@
 #include <chrono>
 #include <unordered_map>
 #include <cstdint>
-#include <exception>
+#include <cstdlib>
+#include <cerrno>
 
 #include "include/cef_version.h"
 #include "include/base/cef_callback.h"
@@ -591,13 +592,16 @@ void WebviewHandler::sendJavaScriptChannelCallBack(const bool error, const std::
         // above) and the M122+ token both assume a decimal identifier.
         bool identifierMatch = false;
 #if CHROME_VERSION_MAJOR >= 122
-        // The token is decimal today; guard the parse so a future non-numeric
-        // identifier format degrades to "no match" instead of crashing the
-        // browser process with an unhandled std::stoll exception.
-        try {
-            identifierMatch = std::stoll(frame->GetIdentifier().ToString()) == frameIdInt;
-        } catch (const std::exception&) {
-            identifierMatch = false;
+        // The token is decimal today; parse it without exceptions (CEF builds
+        // with -fno-exceptions, so std::stoll/try-catch won't compile) — a
+        // non-numeric or out-of-range identifier degrades to "no match" instead
+        // of crashing or wrapping.
+        const std::string idStr = frame->GetIdentifier().ToString();
+        char* end = nullptr;
+        errno = 0;
+        const long long parsed = std::strtoll(idStr.c_str(), &end, 10);
+        if (end != idStr.c_str() && *end == '\0' && errno == 0) {
+            identifierMatch = (parsed == frameIdInt);
         }
 #else
         identifierMatch = frame->GetIdentifier() == frameIdInt;
