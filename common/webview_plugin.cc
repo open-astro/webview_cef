@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <sys/stat.h>
 #include <cstdio>
 #include <vector>
 #endif
@@ -637,10 +638,15 @@ namespace webview_cef {
 		// only working mode would be the (unstable) single-process one.
 		{
 			std::string helperPath = macHelperExecutablePath();
+			// Require a regular, executable file: a directory (or other non-file)
+			// at that path would pass X_OK alone and then fail opaquely inside CEF.
 			// There's a benign TOCTOU window between this check and CEF exec-ing the
 			// helper, but the helper lives inside our own (SIP/code-signed) app
 			// bundle, so it isn't an adversarial path.
-			if (!helperPath.empty() && faccessat(AT_FDCWD, helperPath.c_str(), X_OK, AT_EACCESS) == 0) {
+			struct stat helperStat;
+			if (!helperPath.empty() &&
+				stat(helperPath.c_str(), &helperStat) == 0 && S_ISREG(helperStat.st_mode) &&
+				faccessat(AT_FDCWD, helperPath.c_str(), X_OK, AT_EACCESS) == 0) {
 				CefString(&cefs.browser_subprocess_path) = helperPath;
 				// Log the resolved path even on success: the helper name is derived
 				// from kCFBundleExecutableKey and must match the PRODUCT_NAME the

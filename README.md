@@ -172,6 +172,13 @@ against.
 > `disable-library-validation` is incompatible with sandboxed App Store
 > distribution. The script warns when it merges into sandboxed entitlements.
 
+> **Renderer security posture:** the plugin runs CEF with `no_sandbox` and (for
+> loaded pages) `--disable-web-security` + `--allow-running-insecure-content`.
+> These were already in effect in single-process mode; in multi-process mode they
+> apply to each renderer subprocess. The webview therefore loads pages without the
+> OS sandbox or the same-origin policy — only load content you trust, and don't
+> point it at arbitrary remote origins.
+
 > Offscreen (windowless) rendering uses ANGLE's SwiftShader for WebGL with an
 > in-process GPU, and disables Chromium 130's Rust `fontations` font backend
 > (it panics on certain glyphs); both are handled inside the plugin.
