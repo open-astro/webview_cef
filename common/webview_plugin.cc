@@ -574,8 +574,13 @@ namespace webview_cef {
 			return std::string();
 		}
 		std::string exeName;
-		CFStringRef exe = reinterpret_cast<CFStringRef>(CFBundleGetValueForInfoDictionaryKey(
-			mainBundle, kCFBundleExecutableKey));
+		// CFBundleGetValueForInfoDictionaryKey returns a CFTypeRef; verify it's
+		// actually a CFString before treating it as one (a malformed Info.plist
+		// could put a different type under CFBundleExecutable).
+		CFTypeRef exeValue = CFBundleGetValueForInfoDictionaryKey(
+			mainBundle, kCFBundleExecutableKey);
+		CFStringRef exe = (exeValue && CFGetTypeID(exeValue) == CFStringGetTypeID())
+			? static_cast<CFStringRef>(exeValue) : nullptr;
 		if (exe) {
 			// Size the buffer to the worst-case UTF-8 byte length (+1 for NUL) so
 			// multi-byte app names (e.g. CJK) aren't silently truncated.
@@ -584,7 +589,7 @@ namespace webview_cef {
 			// Guard kCFNotFound (-1) and any absurd length so maxLen + 1 can't
 			// wrap negative into a huge size_t allocation. An executable name
 			// longer than PATH_MAX isn't a real bundle.
-			if (maxLen > 0 && maxLen <= PATH_MAX) {
+			if (maxLen != kCFNotFound && maxLen > 0 && maxLen <= PATH_MAX) {
 				CFIndex maxBytes = maxLen + 1;
 				std::vector<char> buf(static_cast<size_t>(maxBytes), 0);
 				if (CFStringGetCString(exe, buf.data(), maxBytes, kCFStringEncodingUTF8)) {

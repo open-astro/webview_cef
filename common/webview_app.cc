@@ -170,6 +170,7 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
         // mistaken for an existing entry.
         auto hasFeature = [&values](const char* tok) {
             const std::string t(tok);
+            if (t.empty()) return false; // guard: an empty token would loop forever
             for (size_t p = values.find(t); p != std::string::npos; p = values.find(t, p + t.size())) {
                 const bool startOk = (p == 0 || values[p - 1] == ',');
                 const size_t end = p + t.size();

@@ -214,16 +214,25 @@ host_keys = %w[
 runner.build_configurations.each do |c|
   # Ensure the Frameworks rpath is present (don't just set-if-absent): a project
   # that already defines LD_RUNPATH_SEARCH_PATHS without @executable_path/../Frameworks
-  # would otherwise fail to dlopen the embedded CEF framework at runtime.
-  # xcodeproj returns this setting as an Array for multi-value entries but a
-  # space-separated String for single-value ones — handle both (Array() would wrap
-  # the String as one element and miss an already-present path, duplicating it).
+  # would otherwise fail to dlopen the embedded CEF framework at runtime. xcodeproj
+  # returns this as an Array for multi-value entries and a space-separated String
+  # for single-value ones; preserve whichever shape it already uses (and only
+  # append when the rpath isn't already a whitespace-delimited token, so re-runs
+  # don't duplicate it).
+  fw_rpath = '@executable_path/../Frameworks'
   raw_rpaths = c.build_settings['LD_RUNPATH_SEARCH_PATHS']
-  rpaths = raw_rpaths.is_a?(Array) ? raw_rpaths.dup : (raw_rpaths.nil? ? ['$(inherited)'] : raw_rpaths.split(' '))
-  unless rpaths.include?('@executable_path/../Frameworks')
-    rpaths << '@executable_path/../Frameworks'
+  case raw_rpaths
+  when Array
+    raw_rpaths << fw_rpath unless raw_rpaths.include?(fw_rpath)
+    c.build_settings['LD_RUNPATH_SEARCH_PATHS'] = raw_rpaths
+  when String
+    unless raw_rpaths.split(/\s+/).include?(fw_rpath)
+      c.build_settings['LD_RUNPATH_SEARCH_PATHS'] =
+        raw_rpaths.strip.empty? ? fw_rpath : "#{raw_rpaths} #{fw_rpath}"
+    end
+  else
+    c.build_settings['LD_RUNPATH_SEARCH_PATHS'] = ['$(inherited)', fw_rpath]
   end
-  c.build_settings['LD_RUNPATH_SEARCH_PATHS'] = rpaths
 
   ents = c.build_settings['CODE_SIGN_ENTITLEMENTS']
   if ents.nil? || ents.to_s.strip.empty?
