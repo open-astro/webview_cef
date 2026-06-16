@@ -2,6 +2,7 @@
 
 #ifdef OS_MAC
 #include <include/wrapper/cef_library_loader.h>
+#include <CoreFoundation/CoreFoundation.h>
 #endif
 
 #include <math.h>
@@ -556,6 +557,44 @@ namespace webview_cef {
 		return CefExecuteProcess(mainArgs, app, nullptr);
 	}
 
+#ifdef OS_MAC
+	// Path to the bundled subprocess helper executable, derived from the running
+	// app's main bundle: <App>.app/Contents/Frameworks/<App> Helper.app/Contents/
+	// MacOS/<App> Helper. Empty string if it can't be resolved.
+	static std::string macHelperExecutablePath()
+	{
+		CFBundleRef mainBundle = CFBundleGetMainBundle();
+		if (!mainBundle) {
+			return std::string();
+		}
+		std::string exeName;
+		CFStringRef exe = (CFStringRef)CFBundleGetValueForInfoDictionaryKey(
+			mainBundle, kCFBundleExecutableKey);
+		if (exe) {
+			char buf[256] = {0};
+			if (CFStringGetCString(exe, buf, sizeof(buf), kCFStringEncodingUTF8)) {
+				exeName = buf;
+			}
+		}
+		CFURLRef bundleURL = CFBundleCopyBundleURL(mainBundle);
+		if (exeName.empty() || !bundleURL) {
+			if (bundleURL) {
+				CFRelease(bundleURL);
+			}
+			return std::string();
+		}
+		char appPath[4096] = {0};
+		bool ok = CFURLGetFileSystemRepresentation(
+			bundleURL, true, (UInt8*)appPath, sizeof(appPath));
+		CFRelease(bundleURL);
+		if (!ok) {
+			return std::string();
+		}
+		return std::string(appPath) + "/Contents/Frameworks/" + exeName +
+			" Helper.app/Contents/MacOS/" + exeName + " Helper";
+	}
+#endif
+
 	void startCEF()
 	{
 		CefSettings cefs;
@@ -569,7 +608,18 @@ namespace webview_cef {
 #ifdef OS_MAC
 		//cef message loop handle by MainApplication on mac
 		cefs.external_message_pump = true;
-		//CefString(&cefs.browser_subprocess_path) = "/Library/Chaches"; //the helper Program path
+		// Run subprocesses (renderer/GPU/...) out-of-process via the helper bundle
+		// the host app embeds at:
+		//   <App>.app/Contents/Frameworks/<App> Helper.app/Contents/MacOS/<App> Helper
+		// Derive that path from the running app's main bundle so it works for any
+		// host app name. Without this CEF would have no subprocess to spawn and the
+		// only working mode would be the (unstable) single-process one.
+		{
+			std::string helperPath = macHelperExecutablePath();
+			if (!helperPath.empty()) {
+				CefString(&cefs.browser_subprocess_path) = helperPath;
+			}
+		}
 #else
 		//cef message run in another thread on windows/linux
 		cefs.multi_threaded_message_loop = true;

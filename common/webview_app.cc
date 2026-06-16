@@ -166,7 +166,11 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
 
 #ifdef __APPLE__
     command_line->AppendSwitch("use-mock-keychain");
-    command_line->AppendSwitch("single-process");
+    // NOTE: single-process mode is intentionally NOT forced here anymore. It is a
+    // debug-only Chromium mode and is unstable for long-running WebGL/font work
+    // (renderer CHECK/abort after hours). macOS now runs multi-process via the
+    // bundled "<App> Helper.app" subprocess (see browser_subprocess_path in
+    // WebviewPlugin::startCEF + the helper target the host app embeds).
 #endif
 #ifdef __linux__
                                            
