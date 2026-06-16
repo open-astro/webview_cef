@@ -105,8 +105,16 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
 	{
 		if (!m_bEnableGPU)
 		{
-			command_line->AppendSwitch("disable-gpu");
+			// Windowless (offscreen) rendering composites frames on the CPU so
+			// OnPaint keeps delivering to the Flutter texture — but WebGL apps
+			// such as Aladin Lite v3 still need a GL backend. Fully disabling the
+			// GPU removes WebGL and paints those pages as a black rectangle, so
+			// instead keep software compositing and route WebGL through ANGLE's
+			// SwiftShader. Chromium 130 dropped the automatic software-WebGL
+			// fallback, so it must be opted into explicitly.
 			command_line->AppendSwitch("disable-gpu-compositing");
+			command_line->AppendSwitchWithValue("use-angle", "swiftshader");
+			command_line->AppendSwitch("enable-unsafe-swiftshader");
 		}
 
 		command_line->AppendSwitch("disable-web-security");                                     //disable web security

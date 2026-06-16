@@ -68,5 +68,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-/macos/third/cef/Chromium Embedded Framework.framework
-/macos/third/cef/libcef_dll_wrapper.a
+# CEF binaries (fetched/built by macos/setup_cef.sh — never committed)
+macos/webview_cef/third/cef/Chromium Embedded Framework.framework/
+macos/webview_cef/third/cef/libcef_dll_wrapper.a
+macos/webview_cef/third/cef/*.xcframework/
