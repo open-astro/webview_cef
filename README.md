@@ -79,19 +79,30 @@ dependencies:
 ...
 ```
 
-Then follow the below steps inside the `macos/` folder <b>of the cloned repository</b>.<br/><br/>
+Then fetch the CEF binaries by running the setup script <b>inside the cloned repository</b>:
 
-1. Download prebuilt cef bundles from [arm64](https://github.com/hlwhl/webview_cef/releases/download/prebuilt_cef_bin_mac_arm64/CEFbins-mac103.0.12-arm64.zip) or [intel](https://github.com/hlwhl/webview_cef/releases/download/prebuilt_cef_bin_mac_intel/mac103.0.12-Intel.zip) depends on your target machine arch.
+```sh
+./macos/setup_cef.sh        # host arch (arm64 or x86_64)
+```
 
-> Note: You can also download [universal binary](https://github.com/hlwhl/webview_cef/releases/download/prebuilt_cef_bin_mac_universal/mac103.0.12-universal.zip) for build an mac-universal app if you want to build an mac universal app. See [#30](/../../issues/30). Thanks to [@okiabrian123](https://github.com/okiabrian123).
+It downloads CEF 130.1.2 (the same Chromium the Linux build uses), builds
+`libcef_dll_wrapper.a`, lays the framework out as a versioned bundle, and wraps
+both as `.xcframework`s for Swift Package Manager. The binaries are git-ignored;
+re-run the script after cloning or when the CEF version changes. Then run the
+example app.
 
-2. Unzip the archive and put all files into `macos/third/cef`. (Inside the cloned repository, not your project)
+> The macOS plugin supports **both Swift Package Manager** (default on Flutter
+> 3.44+; the framework is embedded via a binary target) and **CocoaPods** (the
+> podspec is kept as a fallback). No extra steps either way once `setup_cef.sh`
+> has run.
 
-3. Run the example app.
+#### CEF version per platform
 
-<br/><br/>
-
-**`[HELP WANTED!]`** Finding a more elegant way to distribute the prebuilt package.
+| Platform | CEF / Chromium | Source |
+|---|---|---|
+| macOS | **130.1.2** (chromium-130) | `macos/setup_cef.sh` (Spotify CDN) |
+| Linux | **130.1.2** (chromium-130) | `third/download.cmake` (Spotify CDN) |
+| Windows | 101.0.18 (chromium-101) | `third/download.cmake` (legacy prebuilt) — **migration to 130 pending** (needs `windows/CMakeLists.txt` rewritten to build the wrapper from the raw Spotify dist, as Linux does, and a Windows build to verify) |
 
 > Note: Currently the project has not been enabled with multi process support due to debug convenience. If you want to enable multi process support, you may want to enable multi process mode by changing the implementation and build your own helper bundle. (Finding a more elegant way in the future.)
 
