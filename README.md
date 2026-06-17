@@ -104,7 +104,84 @@ example app.
 | Linux | **130.1.2** (chromium-130) | `third/download.cmake` (Spotify CDN) |
 | Windows | 101.0.18 (chromium-101) | `third/download.cmake` (legacy prebuilt) — **migration to 130 pending** (needs `windows/CMakeLists.txt` rewritten to build the wrapper from the raw Spotify dist, as Linux does, and a Windows build to verify) |
 
-> Note: Currently the project has not been enabled with multi process support due to debug convenience. If you want to enable multi process support, you may want to enable multi process mode by changing the implementation and build your own helper bundle. (Finding a more elegant way in the future.)
+#### Multi-process (macOS helper bundle)
+
+macOS now runs CEF **multi-process** (the stable, default Chromium model): the
+renderer runs in a separate `<App> Helper.app` subprocess instead of being
+forced into the browser process. Single-process mode was a debug convenience
+and is unstable for long-running WebGL/font workloads (the renderer eventually
+hits a CHECK/abort).
+
+To wire the helper subprocess into your own host app, run the injection script
+against your Flutter `Runner.xcodeproj` once. It needs the [`xcodeproj`](https://rubygems.org/gems/xcodeproj)
+gem (`gem install xcodeproj`):
+
+```sh
+gem install xcodeproj   # one-time, if not already installed
+ruby packages/webview_cef/macos/webview_cef/helper/add_helper_target.rb \
+  macos/Runner.xcodeproj <AppName> packages/webview_cef/macos/webview_cef
+```
+
+- `<AppName>` must be the Runner's product name **and** match its
+  `CFBundleExecutable` (for a stock Flutter app these are the same — `PRODUCT_NAME`
+  in `Runner/Configs/AppInfo.xcconfig`). The plugin derives the helper path at
+  runtime from `CFBundleExecutable`, so if `<AppName>` differs the helper won't be
+  found and the webview falls back to single-process mode. The helper is named
+  `<AppName> Helper`.
+- The last argument is the path (relative to the `macos/` dir) to the plugin's
+  `macos/webview_cef` directory.
+
+The script is idempotent — re-running updates the existing target (no duplicated
+or orphaned objects). It does regenerate the helper target's UUIDs each run,
+though, so **run it once and commit the result**; don't re-run it in a CI
+`git diff --exit-code` check (the diff won't be byte-stable). It:
+
+- adds a `Helper` application target (`<AppName> Helper`) that links
+  `libcef_dll_wrapper` + AppKit and `dlopen`s the embedded CEF framework at
+  runtime via `CefScopedLibraryLoader::LoadInHelper`;
+- adds an **Embed CEF Helper** copy-files phase so the helper is bundled into
+  `Runner.app/Contents/Frameworks` and code-signed on copy;
+- merges the JIT entitlements V8/CEF require (`allow-jit`,
+  `allow-unsigned-executable-memory`, `disable-library-validation`) into the
+  helper and into the host app's existing entitlements plist(s) — it edits the
+  `Runner/{DebugProfile,Release}.entitlements` your project already references,
+  not just the build setting.
+
+The plugin discovers the helper automatically (`browser_subprocess_path` is
+derived from the running app bundle), so no further code changes are needed. See
+`example/macos/Runner.xcodeproj` for a project the script has already been run
+against.
+
+> **Distribution note:** `disable-library-validation` (needed so the host
+> process can `dlopen` the separately-signed CEF framework) together with
+> `allow-jit` is **incompatible with Mac App Store** distribution. This is fine
+> for Developer-ID / direct distribution (notarization is unaffected), which is
+> how CEF apps normally ship. Note that `disable-library-validation` relaxes
+> third-party code-injection protection for the whole host process (not just CEF
+> framework loading) — this is the standard CEF-on-macOS requirement, not
+> something specific to this plugin.
+
+> **Sandboxed hosts:** the example app is **not** sandboxed, and the script's
+> default entitlements assume that. If your host app enables the App Sandbox
+> (`com.apple.security.app-sandbox`), you need to do three extra things yourself:
+> (1) add `com.apple.security.network.client` to the **host** (the browser
+> process opens the sockets, so without it no URL loads); (2) give the **helper**
+> both `com.apple.security.app-sandbox` and `com.apple.security.inherit` so it
+> joins the host's sandbox container — a sandboxed host with a non-sandboxed
+> nested helper fails to launch the child; and (3) be aware that
+> `disable-library-validation` is incompatible with sandboxed App Store
+> distribution. The script warns when it merges into sandboxed entitlements.
+
+> **Renderer security posture:** the plugin runs CEF with `no_sandbox` and (for
+> loaded pages) `--disable-web-security` + `--allow-running-insecure-content`.
+> These were already in effect in single-process mode; in multi-process mode they
+> apply to each renderer subprocess. The webview therefore loads pages without the
+> OS sandbox or the same-origin policy — only load content you trust, and don't
+> point it at arbitrary remote origins.
+
+> Offscreen (windowless) rendering uses ANGLE's SwiftShader for WebGL with an
+> in-process GPU, and disables Chromium 130's Rust `fontations` font backend
+> (it panics on certain glyphs); both are handled inside the plugin.
 
 ### Linux <img src="https://1000logos.net/wp-content/uploads/2017/03/LINUX-LOGO.png" width="16">
 
@@ -125,7 +202,7 @@ For Linux, just adding `webview_cef` to your `pubspec.yaml` (e.g. by running `fl
 - [x] Release to pub
 - [x] Trackpad support
 - [ ] Better macOS binary distribution
-- [ ] Easier way to integrate macOS helper bundles(multi process)
+- [x] Easier way to integrate macOS helper bundles(multi process) — `add_helper_target.rb`
 - [x] devTools support
 
 ## Demo

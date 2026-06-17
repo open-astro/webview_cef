@@ -2,6 +2,14 @@
 
 #ifdef OS_MAC
 #include <include/wrapper/cef_library_loader.h>
+#include <include/base/cef_logging.h>
+#include <CoreFoundation/CoreFoundation.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <limits.h>
+#include <sys/stat.h>
+#include <cstdio>
+#include <vector>
 #endif
 
 #include <math.h>
@@ -556,6 +564,59 @@ namespace webview_cef {
 		return CefExecuteProcess(mainArgs, app, nullptr);
 	}
 
+#ifdef OS_MAC
+	// Path to the bundled subprocess helper executable, derived from the running
+	// app's main bundle: <App>.app/Contents/Frameworks/<App> Helper.app/Contents/
+	// MacOS/<App> Helper. Empty string if it can't be resolved.
+	static std::string macHelperExecutablePath()
+	{
+		CFBundleRef mainBundle = CFBundleGetMainBundle();
+		if (!mainBundle) {
+			return std::string();
+		}
+		std::string exeName;
+		// CFBundleGetValueForInfoDictionaryKey returns a CFTypeRef; verify it's
+		// actually a CFString before treating it as one (a malformed Info.plist
+		// could put a different type under CFBundleExecutable).
+		CFTypeRef exeValue = CFBundleGetValueForInfoDictionaryKey(
+			mainBundle, kCFBundleExecutableKey);
+		CFStringRef exe = (exeValue && CFGetTypeID(exeValue) == CFStringGetTypeID())
+			? static_cast<CFStringRef>(exeValue) : nullptr;
+		if (exe) {
+			// Size the buffer to the worst-case UTF-8 byte length (+1 for NUL) so
+			// multi-byte app names (e.g. CJK) aren't silently truncated.
+			CFIndex maxLen = CFStringGetMaximumSizeForEncoding(
+				CFStringGetLength(exe), kCFStringEncodingUTF8);
+			// Guard kCFNotFound (-1) and any absurd length so maxLen + 1 can't
+			// wrap negative into a huge size_t allocation. An executable name
+			// longer than PATH_MAX isn't a real bundle.
+			if (maxLen != kCFNotFound && maxLen > 0 && maxLen <= PATH_MAX) {
+				CFIndex maxBytes = maxLen + 1;
+				std::vector<char> buf(static_cast<size_t>(maxBytes), 0);
+				if (CFStringGetCString(exe, buf.data(), maxBytes, kCFStringEncodingUTF8)) {
+					exeName = buf.data();
+				}
+			}
+		}
+		CFURLRef bundleURL = CFBundleCopyBundleURL(mainBundle);
+		if (exeName.empty() || !bundleURL) {
+			if (bundleURL) {
+				CFRelease(bundleURL);
+			}
+			return std::string();
+		}
+		char appPath[PATH_MAX] = {0};
+		bool ok = CFURLGetFileSystemRepresentation(
+			bundleURL, true, reinterpret_cast<UInt8*>(appPath), sizeof(appPath));
+		CFRelease(bundleURL);
+		if (!ok) {
+			return std::string();
+		}
+		return std::string(appPath) + "/Contents/Frameworks/" + exeName +
+			" Helper.app/Contents/MacOS/" + exeName + " Helper";
+	}
+#endif
+
 	void startCEF()
 	{
 		CefSettings cefs;
@@ -569,7 +630,70 @@ namespace webview_cef {
 #ifdef OS_MAC
 		//cef message loop handle by MainApplication on mac
 		cefs.external_message_pump = true;
-		//CefString(&cefs.browser_subprocess_path) = "/Library/Chaches"; //the helper Program path
+		// Run subprocesses (renderer/GPU/...) out-of-process via the helper bundle
+		// the host app embeds at:
+		//   <App>.app/Contents/Frameworks/<App> Helper.app/Contents/MacOS/<App> Helper
+		// Derive that path from the running app's main bundle so it works for any
+		// host app name. Without this CEF would have no subprocess to spawn and the
+		// only working mode would be the (unstable) single-process one.
+		{
+			std::string helperPath = macHelperExecutablePath();
+			// Require a regular, executable file: a directory (or other non-file)
+			// at that path would pass X_OK alone and then fail opaquely inside CEF.
+			// There's a benign TOCTOU window between this check and CEF exec-ing the
+			// helper, but the helper lives inside our own (SIP/code-signed) app
+			// bundle, so it isn't an adversarial path.
+			struct stat helperStat;
+			if (!helperPath.empty() &&
+				stat(helperPath.c_str(), &helperStat) == 0 && S_ISREG(helperStat.st_mode) &&
+				faccessat(AT_FDCWD, helperPath.c_str(), X_OK, AT_EACCESS) == 0) {
+				CefString(&cefs.browser_subprocess_path) = helperPath;
+				// Log the resolved path even on success: the helper name is derived
+				// from kCFBundleExecutableKey and must match the PRODUCT_NAME the
+				// host set via add_helper_target.rb, so making it auditable helps
+				// diagnose a name mismatch.
+				LOG(INFO) << "[webview_cef] using CEF helper subprocess: " << helperPath;
+			} else {
+				// No usable helper bundle: either the app path couldn't be resolved,
+				// or the host app hasn't embedded "<App> Helper.app" (run
+				// macos/webview_cef/helper/add_helper_target.rb against its
+				// Runner.xcodeproj). Leaving browser_subprocess_path unset makes CEF
+				// re-exec the main app binary as its subprocess, which for a Flutter
+				// host relaunches the whole app as a renderer and crashes/hangs. Fall
+				// back to single-process mode instead so the webview still works
+				// (degraded, but not broken) until the helper is embedded.
+				const std::string reason = helperPath.empty()
+					? "could not resolve the app bundle path to locate the CEF helper"
+					: "CEF helper not found at '" + helperPath +
+						"' (run add_helper_target.rb to embed it)";
+				// `app` is always constructed before startCEF is called; this is a
+				// programmer-error invariant. DCHECK catches a regression in debug;
+				// in release, log and bail out of startCEF rather than hard-crashing
+				// (CHECK) or letting CEF re-exec the main binary as a renderer because
+				// the single-process fallback couldn't be applied.
+				if (!app) {
+					DCHECK(false) << "[webview_cef] startCEF reached with a null CefApp";
+					const std::string msg = "[webview_cef] " + reason +
+						", and the CefApp is null; aborting CEF initialization.";
+					LOG(ERROR) << msg;
+					std::cerr << msg << std::endl;
+					return;
+				}
+				if (app->GetProcessMode() == 3) {
+					// The host already asked for single-process (mode 3), so there's
+					// nothing to fall back to and no helper is expected — stay quiet.
+				} else {
+					app->SetProcessMode(3); // appends --single-process for the browser
+					const std::string msg = "[webview_cef] " + reason +
+						"; falling back to single-process mode for now.";
+					// Emit via CEF's log AND stderr: CEF LOG() output is often not
+					// surfaced in a shipped Flutter build, whereas stderr shows up in
+					// the Xcode device log / Terminal.
+					LOG(WARNING) << msg;
+					std::cerr << msg << std::endl;
+				}
+			}
+		}
 #else
 		//cef message run in another thread on windows/linux
 		cefs.multi_threaded_message_loop = true;

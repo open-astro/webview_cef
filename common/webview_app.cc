@@ -8,6 +8,7 @@
 
 #include "include/cef_browser.h"
 #include "include/cef_command_line.h"
+#include "include/cef_version.h"  // CEF_VERSION_MAJOR (fontations workaround gate)
 #include "include/views/cef_browser_view.h"
 #include "include/views/cef_window.h"
 #include "include/wrapper/cef_helpers.h"
@@ -115,19 +116,32 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
 			command_line->AppendSwitch("disable-gpu-compositing");
 			command_line->AppendSwitchWithValue("use-angle", "swiftshader");
 			command_line->AppendSwitch("enable-unsafe-swiftshader");
+#ifdef __APPLE__
+			// Run the GL/GPU work in the browser process. The renderer still runs
+			// out-of-process (the part that was crashing), but on macOS a separate
+			// GPU *subprocess* fails to launch under offscreen software rendering
+			// (gpu_process_host error 1003 -> "GPU process isn't usable"). Software
+			// SwiftShader has no real GPU to isolate, so in-process is correct here.
+			// Scoped to macOS: the failure was only diagnosed there, and Linux's
+			// out-of-process GPU path is already verified, so don't change it.
+			command_line->AppendSwitch("in-process-gpu");
+#endif
 		}
 
 		command_line->AppendSwitch("disable-web-security");                                     //disable web security
 		command_line->AppendSwitch("allow-running-insecure-content");                           //allow running insecure content in secure pages
 		// Don't create a "GPUCache" directory when cache-path is unspecified.
 		command_line->AppendSwitch("disable-gpu-shader-disk-cache");                            //disable gpu shader disk cache
-        command_line->AppendSwitch("no-sanbox");                       
+        // (Sandbox is disabled authoritatively via CefSettings.no_sandbox in
+        // WebviewPlugin::startCEF, which makes CEF propagate --no-sandbox to every
+        // process; no command-line switch is added here. The original upstream line
+        // was misspelled "no-sanbox" and was a no-op anyway.)
 
 		//http://www.chromium.org/developers/design-documents/process-models
 		if (m_uMode == 1)
 		{
 			command_line->AppendSwitch("process-per-site");                                     //each site in its own process
-			command_line->AppendSwitchWithValue("renderer-process-limit ", "8");              //limit renderer process count to decrease memory usage
+			command_line->AppendSwitchWithValue("renderer-process-limit", "8");              //limit renderer process count to decrease memory usage
 		}
 		else if (m_uMode == 2)
 		{
@@ -135,24 +149,67 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
 		}
 		else if (m_uMode == 3)
 		{
-			command_line->AppendSwitch("single-process");                                     //all in one process
+			// All in one process. On macOS this bypasses the "<App> Helper.app"
+			// subprocess entirely; it's also what startCEF falls back to when no
+			// helper bundle is embedded. Debug-only / unstable for long sessions.
+			command_line->AppendSwitch("single-process");
 		}
 		command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");     //autoplay policy for media
 
         //Support cross domain requests
         std::string values = command_line->GetSwitchValue("disable-features");
-        if (values == "")
-        {
-            values = "SameSiteByDefaultCookies,CookiesWithoutSameSiteMustBeSecure";
-        }
-        else
-        {
-            values += ",SameSiteByDefaultCookies,CookiesWithoutSameSiteMustBeSecure";
-        }
-        if (values.find("CalculateNativeWinOcclusion") == size_t(-1))
-        {
-            values += ",CalculateNativeWinOcclusion";
-        }
+        // Comma-delimited token check (not a substring search) so a feature name
+        // that merely *contains* another (e.g. "NewFontationsFontBackend") can't be
+        // mistaken for an existing entry.
+        auto hasFeature = [&values](const char* tok) {
+            const std::string t(tok);
+            if (t.empty()) return false; // guard: an empty token would loop forever
+            for (size_t p = values.find(t); p != std::string::npos; p = values.find(t, p + t.size())) {
+                const bool startOk = (p == 0 || values[p - 1] == ',');
+                const size_t end = p + t.size();
+                const bool endOk = (end == values.size() || values[end] == ',');
+                if (startOk && endOk) return true;
+            }
+            return false;
+        };
+        auto appendFeature = [&values, &hasFeature](const char* tok) {
+            if (hasFeature(tok)) return;        // don't duplicate an existing entry
+            values += (values.empty() ? "" : ",");
+            values += tok;
+        };
+        appendFeature("SameSiteByDefaultCookies");
+        appendFeature("CookiesWithoutSameSiteMustBeSecure");
+#ifdef _WIN32
+        // Native window-occlusion tracking is a Windows-only Chromium feature
+        // (it can pause rendering for "occluded" offscreen windows); disabling it
+        // is a no-op elsewhere, so only touch it on Windows.
+        appendFeature("CalculateNativeWinOcclusion");
+#endif
+#if defined(CEF_VERSION_MAJOR) && CEF_VERSION_MAJOR >= 130
+        // Chromium 130 made the Rust "fontations" backend the default Skia font
+        // rasterizer. It panics with an integer overflow (crash_in_rust_with_overflow
+        // in fontations_ffi BridgeBitmapGlyph) on certain glyphs — reproduced in
+        // both single- and multi-process CEF on macOS. Fall back to the long-stable
+        // FreeType path.
+        //
+        // Gate on the CEF major version, not the OS: this is a Chromium-version bug
+        // (fontations became the default in 130), not a platform one. macOS and Linux
+        // both download CEF 130.1.2 here and need it; the Windows fork is still on
+        // CEF 101 (pre-fontations) so the macro is 101 and the switch is dropped.
+        // Keying off the actually-compiled CEF version means a future Windows bump to
+        // 130 is covered with no code change, and any platform rolled back below 130
+        // sheds the now-irrelevant switch on its own.
+        // NOTE: this only runs in the browser process (OnBeforeCommandLineProcessing
+        // here, process_type empty). In this plugin the Helper runs
+        // CefExecuteProcess with a NULL CefApp, so this callback doesn't fire in any
+        // subprocess — the fix still reaches the renderer because Chromium copies
+        // --disable-features onto each child process's command line for feature-state
+        // consistency. (So renderer-only feature flags can't be added via this
+        // callback in this design — they'd need the helper to pass its own CefApp.)
+        // TODO: remove this workaround once the upstream Chromium "fontations" font
+        // backend stops panicking (re-test on each CEF/Chromium upgrade).
+        appendFeature("FontationsFontBackend");
+#endif
 
         command_line->AppendSwitchWithValue("disable-features", values);
         // for unsafe domain, add domain to whitelist
@@ -162,15 +219,24 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
 			command_line->AppendSwitchWithValue("unsafely-treat-insecure-origin-as-secure",
                 m_strFilterDomain);
 		}
-    }
 
 #ifdef __APPLE__
-    command_line->AppendSwitch("use-mock-keychain");
-    command_line->AppendSwitch("single-process");
+		// Route Chromium's keychain access to a mock so it doesn't prompt. Scoped to
+		// the browser process intentionally: on macOS keychain access (password /
+		// cookie / cert storage) is a browser-process responsibility — the
+		// renderer/GPU subprocesses don't talk to the keychain directly — so the
+		// mock only needs to be set here. (This callback fires per process type, so
+		// without the guard the switch would also be appended to every subprocess
+		// command line unnecessarily.)
+		command_line->AppendSwitch("use-mock-keychain");
 #endif
-#ifdef __linux__
-                                           
-#endif
+    }
+
+    // NOTE: single-process mode is intentionally NOT forced on macOS anymore. It
+    // is a debug-only Chromium mode and is unstable for long-running WebGL/font
+    // work (renderer CHECK/abort after hours). macOS now runs multi-process via
+    // the bundled "<App> Helper.app" subprocess (see browser_subprocess_path in
+    // WebviewPlugin::startCEF + the helper target the host app embeds).
 }
 
 void WebviewApp::OnContextInitialized()
