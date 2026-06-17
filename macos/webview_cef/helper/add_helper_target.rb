@@ -240,8 +240,17 @@ runner.build_configurations.each do |c|
 
   ents = c.build_settings['CODE_SIGN_ENTITLEMENTS']
   if ents.nil? || ents.to_s.strip.empty?
-    c.build_settings['CODE_SIGN_ENTITLEMENTS'] = "#{plugin_macos}/helper/app.entitlements"
-    next
+    # Pointing CODE_SIGN_ENTITLEMENTS at the plugin's app.entitlements template
+    # would bake in a path relative to the plugin's location — fine for a local
+    # path dependency, but unresolvable on another machine / CI when the plugin
+    # is consumed from the pub cache. Rather than write a fragile path, ask the
+    # developer to create their own entitlements file. (Stock Flutter apps ship
+    # Runner/Configs/{DebugProfile,Release}.entitlements, so this is rarely hit.)
+    abort "  ! #{c.name} has no CODE_SIGN_ENTITLEMENTS. Create a Runner entitlements " \
+          "file (e.g. Runner/Release.entitlements), set CODE_SIGN_ENTITLEMENTS to it, " \
+          "and add these keys before re-running: " \
+          "com.apple.security.cs.allow-jit, allow-unsigned-executable-memory, " \
+          "disable-library-validation. (See macos/webview_cef/helper/app.entitlements.)"
   end
   # Resolve the entitlements path (relative to the Runner.xcodeproj parent dir)
   # and merge the required keys into the existing plist. $(SRCROOT)/$(PROJECT_DIR)/
