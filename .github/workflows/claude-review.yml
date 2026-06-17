@@ -32,9 +32,6 @@ jobs:
           # Subscription (Pro/Max) auth. Generate locally with `claude setup-token`
           # and store as an org or repo secret named CLAUDE_CODE_OAUTH_TOKEN.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # Keep the whole review in ONE top-level comment that updates in place,
-          # instead of posting a new comment on every push.
-          use_sticky_comment: true
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
@@ -54,12 +51,17 @@ jobs:
             - Be concise. Use short bullet points.
             - Skip minor style/formatting nitpicks (a linter/clang-format handles those).
             - If you find no significant issues, say so briefly.
-            - End your comment with a sign-off line:
-              "✅ Approved" if no significant issues, or
-              "⚠️ Issues found" if there are things to address.
 
-            Post your review as a SINGLE top-level comment using `gh pr comment`.
+            Submit your verdict as a FORMAL pull-request review (NOT a plain
+            comment) so it satisfies branch protection's required-review gate.
+            Run EXACTLY ONE of these, with PR NUMBER ${{ github.event.pull_request.number }}:
+            - No significant issues:
+                gh pr review ${{ github.event.pull_request.number }} --approve --body "<concise summary>. ✅ Approved"
+            - Issues to address:
+                gh pr review ${{ github.event.pull_request.number }} --request-changes --body "<concise findings>. ⚠️ Issues found"
+            Keep --body a single, concise, double-quoted string. Do NOT use a
+            heredoc or $(...) command substitution (the sandbox blocks those).
             Do not submit the review text as a chat message.
           claude_args: |
             --model sonnet
-            --allowedTools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
+            --allowedTools "Bash(gh pr review:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
