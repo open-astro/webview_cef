@@ -8,6 +8,7 @@
 
 #include "include/cef_browser.h"
 #include "include/cef_command_line.h"
+#include "include/cef_version.h"  // CEF_VERSION_MAJOR (fontations workaround gate)
 #include "include/views/cef_browser_view.h"
 #include "include/views/cef_window.h"
 #include "include/wrapper/cef_helpers.h"
@@ -184,13 +185,20 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
         // is a no-op elsewhere, so only touch it on Windows.
         appendFeature("CalculateNativeWinOcclusion");
 #endif
-#ifdef __APPLE__
+#if defined(CEF_VERSION_MAJOR) && CEF_VERSION_MAJOR >= 130
         // Chromium 130 made the Rust "fontations" backend the default Skia font
         // rasterizer. It panics with an integer overflow (crash_in_rust_with_overflow
         // in fontations_ffi BridgeBitmapGlyph) on certain glyphs — reproduced in
         // both single- and multi-process CEF on macOS. Fall back to the long-stable
-        // FreeType path. Scoped to macOS (like in-process-gpu): the panic was only
-        // diagnosed there; Linux can opt in once it's verified to need it.
+        // FreeType path.
+        //
+        // Gate on the CEF major version, not the OS: this is a Chromium-version bug
+        // (fontations became the default in 130), not a platform one. macOS and Linux
+        // both download CEF 130.1.2 here and need it; the Windows fork is still on
+        // CEF 101 (pre-fontations) so the macro is 101 and the switch is dropped.
+        // Keying off the actually-compiled CEF version means a future Windows bump to
+        // 130 is covered with no code change, and any platform rolled back below 130
+        // sheds the now-irrelevant switch on its own.
         // NOTE: this only runs in the browser process (OnBeforeCommandLineProcessing
         // here, process_type empty). In this plugin the Helper runs
         // CefExecuteProcess with a NULL CefApp, so this callback doesn't fire in any
