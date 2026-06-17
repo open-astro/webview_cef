@@ -267,10 +267,21 @@ runner.build_configurations.each do |c|
   end
   # Abort (don't fall back to {}) if the plist can't be parsed: writing an empty
   # hash back would erase the host app's existing entitlements (sandbox, network,
-  # …) and leave only the three CEF keys.
-  plist = Xcodeproj::Plist.read_from_path(ents_path)
-  abort "  ! could not parse #{ents_path} as a plist (#{c.name}); refusing to " \
-        "overwrite it. Merge the JIT entitlements manually." unless plist
+  # …) and leave only the three CEF keys. read_from_path RAISES (Nanaimo parse
+  # error) on a malformed/empty/truncated file rather than returning nil, so catch
+  # that and turn it into the same clean abort instead of a raw gem stack trace.
+  plist = nil
+  parse_error = nil
+  begin
+    plist = Xcodeproj::Plist.read_from_path(ents_path)
+  rescue StandardError => e
+    parse_error = e.message
+  end
+  unless plist.is_a?(Hash)
+    abort "  ! could not parse #{ents_path} as a plist (#{c.name})" \
+          "#{parse_error ? ": #{parse_error}" : ''}; refusing to overwrite it. " \
+          "Merge the JIT entitlements manually."
+  end
   # disable-library-validation is incompatible with the App Sandbox for
   # distribution; if the host is sandboxed, warn rather than silently produce a
   # contradictory entitlement set (and the helper would also need app-sandbox +
