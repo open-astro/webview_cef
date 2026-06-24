@@ -142,11 +142,23 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
         // process; no command-line switch is added here. The original upstream line
         // was misspelled "no-sanbox" and was a no-op anyway.)
 
-		// NOTE: the legacy m_uMode process-model switches (process-per-site /
-		// process-per-tab / single-process — http://www.chromium.org/developers/design-documents/process-models)
-		// are intentionally omitted: --single-process is forced unconditionally above,
-		// which overrides any per-process-model selection, so honoring m_uMode here
-		// would just emit contradictory switches.
+		//http://www.chromium.org/developers/design-documents/process-models
+		if (m_uMode == 1)
+		{
+			command_line->AppendSwitch("process-per-site");                                     //each site in its own process
+			command_line->AppendSwitchWithValue("renderer-process-limit", "8");              //limit renderer process count to decrease memory usage
+		}
+		else if (m_uMode == 2)
+		{
+			command_line->AppendSwitch("process-per-tab");                                      //each tab in its own process
+		}
+		else if (m_uMode == 3)
+		{
+			// All in one process. On macOS this bypasses the "<App> Helper.app"
+			// subprocess entirely; it's also what startCEF falls back to when no
+			// helper bundle is embedded. Debug-only / unstable for long sessions.
+			command_line->AppendSwitch("single-process");
+		}
 		command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");     //autoplay policy for media
 
         //Support cross domain requests
@@ -225,13 +237,11 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
 #endif
     }
 
-    // NOTE: --single-process IS forced for every process type (see the unconditional
-    // AppendSwitch above). It's the only model that renders Aladin's WebGL on CEF 149
-    // across WILMA: the out-of-process model fails on macOS (GPU subprocess won't
-    // launch from the single embedded helper bundle; renderer never paints). Its
-    // teardown caveat is handled by driving CefShutdown on app exit (stopCEF, gated on
-    // isCefInitialized). The "<App> Helper.app" the host embeds still serves the
-    // remaining out-of-process utilities (network/storage), not the renderer/GPU.
+    // NOTE: single-process mode is intentionally NOT forced on macOS anymore. It
+    // is a debug-only Chromium mode and is unstable for long-running WebGL/font
+    // work (renderer CHECK/abort after hours). macOS now runs multi-process via
+    // the bundled "<App> Helper.app" subprocess (see browser_subprocess_path in
+    // WebviewPlugin::startCEF + the helper target the host app embeds).
 }
 
 void WebviewApp::OnContextInitialized()
