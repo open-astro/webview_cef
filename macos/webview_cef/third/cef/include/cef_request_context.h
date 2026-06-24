@@ -44,6 +44,7 @@
 #include "include/cef_cookie.h"
 #include "include/cef_media_router.h"
 #include "include/cef_preference.h"
+#include "include/cef_registration.h"
 #include "include/cef_values.h"
 
 class CefRequestContextHandler;
@@ -65,6 +66,27 @@ class CefResolveCallback : public virtual CefBaseRefCounted {
       cef_errorcode_t result,
       const std::vector<CefString>& resolved_ips) = 0;
 };
+
+#if CEF_API_ADDED(13401)
+///
+/// Implemented by the client to observe content and website setting changes and
+/// registered via CefRequestContext::AddSettingObserver. The methods of this
+/// class will be called on the browser process UI thread.
+///
+/*--cef(source=client,added=13401)--*/
+class CefSettingObserver : public virtual CefBaseRefCounted {
+ public:
+  ///
+  /// Called when a content or website setting has changed. The new value can be
+  /// retrieved using CefRequestContext::GetContentSetting or
+  /// CefRequestContext::GetWebsiteSetting.
+  ///
+  /*--cef(optional_param=requesting_url,optional_param=top_level_url)--*/
+  virtual void OnSettingChanged(const CefString& requesting_url,
+                                const CefString& top_level_url,
+                                cef_content_setting_types_t content_type) = 0;
+};
+#endif
 
 ///
 /// A request context provides request handling for a set of related browser
@@ -190,6 +212,15 @@ class CefRequestContext : public CefPreferenceManager {
   virtual void ClearCertificateExceptions(
       CefRefPtr<CefCompletionCallback> callback) = 0;
 
+#if CEF_API_ADDED(14400)
+  ///
+  /// Clears the HTTP cache. If |callback| is non-NULL it will be executed on
+  /// the UI thread after completion.
+  ///
+  /*--cef(added=14400,optional_param=callback)--*/
+  virtual void ClearHttpCache(CefRefPtr<CefCompletionCallback> callback) = 0;
+#endif
+
   ///
   /// Clears all HTTP authentication credentials that were added as part of
   /// handling GetAuthCredentials. If |callback| is non-NULL it will be executed
@@ -291,6 +322,17 @@ class CefRequestContext : public CefPreferenceManager {
                                  const CefString& top_level_url,
                                  cef_content_setting_types_t content_type,
                                  cef_content_setting_values_t value) = 0;
+
+#if CEF_API_ADDED(13401)
+  ///
+  /// Add an observer for content and website setting changes. The observer will
+  /// remain registered until the returned Registration object is destroyed.
+  /// This method must be called on the browser process UI thread.
+  ///
+  /*--cef(added=13401)--*/
+  virtual CefRefPtr<CefRegistration> AddSettingObserver(
+      CefRefPtr<CefSettingObserver> observer) = 0;
+#endif
 
   ///
   /// Sets the Chrome color scheme for all browsers that share this request

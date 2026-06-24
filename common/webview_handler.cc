@@ -170,6 +170,7 @@ void WebviewHandler::OnBeforeClose(CefRefPtr<CefBrowser> browser) {
 
 bool WebviewHandler::OnBeforePopup(CefRefPtr<CefBrowser> browser,
                                   CefRefPtr<CefFrame> frame,
+                                  int popup_id,
                                   const CefString& target_url,
                                   const CefString& target_frame_name,
                                   WindowOpenDisposition target_disposition,
@@ -284,6 +285,9 @@ void WebviewHandler::createBrowser(std::string url, std::function<void(int)> cal
     browser_settings.windowless_frame_rate = 30;
     CefWindowInfo window_info;
     window_info.SetAsWindowless(0);
+    // shared_texture_enabled is left OFF in this CPU-OnPaint baseline. (The GPU
+    // shared-texture/OnAcceleratedPaint path stays implemented in the handler for
+    // when we re-enable it for WebGL, but it requires GPU compositing on.)
     callback(CefBrowserHost::CreateBrowserSync(window_info, this, url, browser_settings, nullptr, nullptr)->GetIdentifier());
 }
 
@@ -682,6 +686,21 @@ void WebviewHandler::OnPaint(CefRefPtr<CefBrowser> browser, CefRenderHandler::Pa
                             const CefRenderHandler::RectList &dirtyRects, const void *buffer, int w, int h) {
     if (!browser->IsPopup() && onPaintCallback != nullptr) {
         onPaintCallback(browser->GetIdentifier(), buffer, w, h);
+    }
+}
+
+// GPU shared-texture frames. When shared_texture_enabled is honored, CEF composites
+// on the GPU and delivers each frame here as a platform shared texture (an IOSurface
+// on macOS) instead of calling OnPaint — which is the only way GPU-only content like
+// Aladin Lite v3's WebGL reaches us. The texture layer wraps the surface zero-copy.
+void WebviewHandler::OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, CefRenderHandler::PaintElementType type,
+                                        const CefRenderHandler::RectList &dirtyRects, const CefAcceleratedPaintInfo &info) {
+    if (!browser->IsPopup() && onAcceleratedPaintCallback != nullptr &&
+        info.shared_texture_io_surface != nullptr) {
+        auto it = browser_map_.find(browser->GetIdentifier());
+        int w = (it != browser_map_.end()) ? it->second.width : 0;
+        int h = (it != browser_map_.end()) ? it->second.height : 0;
+        onAcceleratedPaintCallback(browser->GetIdentifier(), info.shared_texture_io_surface, w, h);
     }
 }
 

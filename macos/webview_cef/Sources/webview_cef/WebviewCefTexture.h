@@ -8,6 +8,7 @@
 #ifndef WebviewCefTexture_h
 #define WebviewCefTexture_h
 #import <FlutterMacOS/FlutterMacOS.h>
+#import <IOSurface/IOSurface.h>
 
 @interface WebviewCefTexture : NSObject<FlutterTexture>
 {
@@ -17,6 +18,10 @@
 }
 
 - (void)onFrame:(const void *)buffer width:(int64_t)width height:(int64_t)height;
+
+// GPU shared-texture frame (accelerated OSR): wrap the CEF IOSurface as the
+// texture's CVPixelBuffer with no CPU copy. Dimensions are taken from the surface.
+- (void)onIOSurface:(IOSurfaceRef)surface width:(int64_t)width height:(int64_t)height;
 
 @end
 

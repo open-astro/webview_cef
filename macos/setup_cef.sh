@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Fetch + stage the CEF 130 binaries the macOS plugin needs. The framework, the
+# Fetch + stage the CEF binaries the macOS plugin needs. The framework, the
 # static wrapper lib, and the two .xcframeworks are git-ignored (hundreds of MB),
 # so this script reproduces them from the upstream Spotify CDN distribution. Run
 # it once after cloning (and whenever CEF_VERSION below changes) before building
@@ -14,7 +14,7 @@ set -euo pipefail
 
 # Keep this in lockstep with third/download.cmake (Windows/Linux) so every
 # platform ships the same Chromium.
-CEF_VERSION="130.1.2+g48f3ef6+chromium-130.0.6723.44"
+CEF_VERSION="149.0.4+g2f1bfd8+chromium-149.0.7827.156"
 
 case "${CEF_ARCH:-}" in
   macosx64|macosarm64) ARCH="$CEF_ARCH" ;;
@@ -42,7 +42,7 @@ DIST="$(find "$WORK" -maxdepth 1 -type d -name 'cef_binary_*' | head -1)"
 echo "==> Building libcef_dll_wrapper.a"
 proj_arch="$([ "$ARCH" = "macosarm64" ] && echo arm64 || echo x86_64)"
 ( cd "$DIST" && mkdir -p build && cd build \
-    && cmake -G Xcode -DPROJECT_ARCH="$proj_arch" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 .. >/dev/null \
+    && cmake -G Xcode -DPROJECT_ARCH="$proj_arch" -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 .. >/dev/null \
     && xcodebuild -project cef.xcodeproj -target libcef_dll_wrapper -configuration Release -arch "$proj_arch" >/dev/null )
 WRAPPER="$DIST/build/libcef_dll_wrapper/Release/libcef_dll_wrapper.a"
 [ -f "$WRAPPER" ] || { echo "wrapper build failed" >&2; exit 1; }

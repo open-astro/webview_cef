@@ -56,6 +56,31 @@ typedef void(^RetainSelfBlock)(void);
     dispatch_semaphore_signal(_lock);
 }
 
+- (void)onIOSurface:(IOSurfaceRef)surface width:(int64_t)width height:(int64_t)height {
+    if (surface == NULL) { return; }
+    // Zero-copy: wrap the CEF-owned IOSurface as a CVPixelBuffer rather than memcpy a
+    // CPU buffer. CEF cycles a small pool of surfaces and hands us the current one per
+    // frame; Flutter reads it via copyPixelBuffer. The pixel format (BGRA) is carried
+    // by the IOSurface itself, so no format is specified here.
+    NSDictionary* attrs = @{
+        (__bridge NSString*)kCVPixelBufferMetalCompatibilityKey : @YES,
+        (__bridge NSString*)kCVPixelBufferOpenGLCompatibilityKey : @YES,
+    };
+    CVPixelBufferRef buf = NULL;
+    CVReturn r = CVPixelBufferCreateWithIOSurface(kCFAllocatorDefault, surface,
+                                                  (__bridge CFDictionaryRef)attrs, &buf);
+    if (r != kCVReturnSuccess || buf == NULL) {
+        if (buf) { CVPixelBufferRelease(buf); }
+        return;
+    }
+    dispatch_semaphore_wait(_lock, DISPATCH_TIME_FOREVER);
+    if (_pixelBuffer) {
+        CVPixelBufferRelease(_pixelBuffer);
+    }
+    _pixelBuffer = buf;
+    dispatch_semaphore_signal(_lock);
+}
+
 - (CVPixelBufferRef _Nullable)copyPixelBuffer {
     dispatch_semaphore_wait(_lock, DISPATCH_TIME_FOREVER);
     _pixelBufferTemp = _pixelBuffer;

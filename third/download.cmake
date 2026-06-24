@@ -1,16 +1,24 @@
+# CEF 149 (Chromium 149.0.7827.156) — kept in lockstep with macOS
+# (packages/webview_cef/macos/setup_cef.sh) so every platform ships the same,
+# current Chromium. Linux/Windows binaries come from the official Spotify CDN, which
+# publishes the same build hash (g2f1bfd8) for every platform.
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     message(WARNING "current system is Linux")
     if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "aarch64")
-        set(cef_prebuilt_path "https://cef-builds.spotifycdn.com/cef_binary_130.1.2%2Bg48f3ef6%2Bchromium-130.0.6723.44_linuxarm64.tar.bz2")
-        set(cef_prebuilt_version "cef_binary_130.1.2%2Bg48f3ef6%2Bchromium-130.0.6723.44_linuxarm64.tar.bz2")
+        set(cef_prebuilt_path "https://cef-builds.spotifycdn.com/cef_binary_149.0.4%2Bg2f1bfd8%2Bchromium-149.0.7827.156_linuxarm64.tar.bz2")
+        set(cef_prebuilt_version "cef_binary_149.0.4%2Bg2f1bfd8%2Bchromium-149.0.7827.156_linuxarm64.tar.bz2")
     else()
-        set(cef_prebuilt_path "https://cef-builds.spotifycdn.com/cef_binary_130.1.2%2Bg48f3ef6%2Bchromium-130.0.6723.44_linux64.tar.bz2")
-        set(cef_prebuilt_version "cef_binary_130.1.2%2Bg48f3ef6%2Bchromium-130.0.6723.44_linux64.tar.bz2")
+        set(cef_prebuilt_path "https://cef-builds.spotifycdn.com/cef_binary_149.0.4%2Bg2f1bfd8%2Bchromium-149.0.7827.156_linux64.tar.bz2")
+        set(cef_prebuilt_version "cef_binary_149.0.4%2Bg2f1bfd8%2Bchromium-149.0.7827.156_linux64.tar.bz2")
     endif()
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     message(WARNING "current system is Windows")
-    set(cef_prebuilt_path "https://github.com/hlwhl/webview_cef/releases/download/prebuilt_cef_bin_linux/webview_cef_bin_0.0.2_101.0.18+chromium-101.0.4951.67_windows64.zip")
-    set(cef_prebuilt_version "webview_cef_bin_0.0.2_101.0.18+chromium-101.0.4951.67_windows64")
+    # Windows previously pinned a third-party prebuilt (hlwhl/webview_cef) that only
+    # published CEF 101. CEF 149 comes from the official Spotify CDN — the same source
+    # the Linux path uses — so libcef_dll_wrapper is compiled the same way. NOT verified
+    # on a local Windows toolchain; relies on CI / Windows build validation.
+    set(cef_prebuilt_path "https://cef-builds.spotifycdn.com/cef_binary_149.0.4%2Bg2f1bfd8%2Bchromium-149.0.7827.156_windows64.tar.bz2")
+    set(cef_prebuilt_version "cef_binary_149.0.4%2Bg2f1bfd8%2Bchromium-149.0.7827.156_windows64")
 # elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 #     message(STATUS "current system is MacOS")
 #     set(cef_prebuilt_path "")

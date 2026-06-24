@@ -37,8 +37,14 @@ public CefFocusHandler,
 public CefLoadHandler,
 public CefRenderHandler{
 public:
-    //Paint callback
+    //Paint callback (CPU OnPaint path)
     std::function<void(int browserId, const void* buffer, int32_t width, int32_t height)> onPaintCallback;
+    //GPU shared-texture paint callback (accelerated OSR). |sharedHandle| is the
+    //platform shared-texture handle delivered by CefRenderHandler::OnAcceleratedPaint
+    //(an IOSurface on macOS); the texture layer wraps it zero-copy. Needed so
+    //GPU-only content like Aladin's WebGL — which never lands in the CPU OnPaint
+    //buffer — actually reaches the Flutter texture.
+    std::function<void(int browserId, void* sharedHandle, int32_t width, int32_t height)> onAcceleratedPaintCallback;
     //cef message event
     std::function<void(int browserId, std::string url)> onUrlChangedEvent;
     std::function<void(int browserId, std::string title)> onTitleChangedEvent;
@@ -98,6 +104,7 @@ public:
     virtual void OnBeforeClose(CefRefPtr<CefBrowser> browser) override;
     virtual bool OnBeforePopup(CefRefPtr<CefBrowser> browser,
                                CefRefPtr<CefFrame> frame,
+                               int popup_id,
                                const CefString& target_url,
                                const CefString& target_frame_name,
                                WindowOpenDisposition target_disposition,
@@ -129,6 +136,7 @@ public:
     // CefRenderHandler methods:
     virtual void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) override;
     virtual void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, const void* buffer, int width, int height) override;
+    virtual void OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, const CefAcceleratedPaintInfo& info) override;
     virtual bool GetScreenInfo(CefRefPtr<CefBrowser> browser, CefScreenInfo& screen_info) override;
     virtual bool StartDragging(CefRefPtr<CefBrowser> browser,
                                CefRefPtr<CefDragData> drag_data,

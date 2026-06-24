@@ -1,4 +1,5 @@
-// Copyright (c) 2011 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2011 Marshall A. Greenblatt. Portions copyright (c) 2012
+// Google Inc. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -79,13 +80,16 @@
 
 #if BUILDFLAG(IS_LINUX)
 #include "ui/base/ozone_buildflags.h"
-#if BUILDFLAG(IS_OZONE_X11)
+#if BUILDFLAG(SUPPORTS_OZONE_X11)
 #define CEF_X11 1
 #endif
 #endif
 
 #else  // !USING_CHROMIUM_INCLUDES
+
+#if !defined(GENERATING_CEF_API_HASH)
 #include "include/cef_config.h"
+#endif
 
 // The following is substantially similar to the Chromium implementation.
 // If the Chromium implementation diverges the below implementation should be

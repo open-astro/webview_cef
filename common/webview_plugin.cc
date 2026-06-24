@@ -46,6 +46,12 @@ namespace webview_cef {
 				}
 			};
 
+			m_handler->onAcceleratedPaintCallback = [=](int browserId, void* sharedHandle, int32_t width, int32_t height) {
+				if (m_renderers.find(browserId) != m_renderers.end() && m_renderers[browserId] != nullptr) {
+					m_renderers[browserId]->onAcceleratedFrame(sharedHandle, width, height);
+				}
+			};
+
 			m_handler->onTooltipEvent = [=](int browserId, std::string text) {
 				if (m_invokeFunc) {
 					WValue* bId = webview_value_new_int(browserId);
@@ -630,6 +636,16 @@ namespace webview_cef {
 #ifdef OS_MAC
 		//cef message loop handle by MainApplication on mac
 		cefs.external_message_pump = true;
+		// CEF requires a writable root cache path. Leaving it at the default emits a
+		// "may lead to unintended process singleton behavior" warning on older
+		// Chromium and became a hard CHECK during CefInitialize on Chromium 149
+		// (macOS), so set a per-user cache dir explicitly. CEF creates the leaf dir.
+		if (const char* home = getenv("HOME")) {
+			if (home[0] != '\0') {
+				CefString(&cefs.root_cache_path) =
+					std::string(home) + "/Library/Caches/webview_cef";
+			}
+		}
 		// Run subprocesses (renderer/GPU/...) out-of-process via the helper bundle
 		// the host app embeds at:
 		//   <App>.app/Contents/Frameworks/<App> Helper.app/Contents/MacOS/<App> Helper
@@ -723,6 +739,14 @@ namespace webview_cef {
 
     void stopCEF()
     {
+		// Guard: calling CefShutdown() without a matching CefInitialize() trips a
+		// CEF DCHECK / crashes. The app drives this from a lifecycle hook on every
+		// exit (AppLifecycleListener.onExitRequested), which can fire even when the
+		// webview was never opened, so no-op when CEF isn't running.
+		if (!isCefInitialized) {
+			return;
+		}
 		CefShutdown();
+		isCefInitialized = false;
     }
 }

@@ -106,27 +106,36 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
 	{
 		if (!m_bEnableGPU)
 		{
-			// Windowless (offscreen) rendering composites frames on the CPU so
-			// OnPaint keeps delivering to the Flutter texture — but WebGL apps
-			// such as Aladin Lite v3 still need a GL backend. Fully disabling the
-			// GPU removes WebGL and paints those pages as a black rectangle, so
-			// instead keep software compositing and route WebGL through ANGLE's
-			// SwiftShader. Chromium 130 dropped the automatic software-WebGL
-			// fallback, so it must be opted into explicitly.
+			// Software offscreen rendering — the canonical, portable combo that makes
+			// CefRenderHandler::OnPaint actually fire (this is what upstream cefclient
+			// appends for OSR). Fully disable the GPU and GPU compositing so frames come
+			// straight from the software compositor with no GPU readback, and enable
+			// begin-frame scheduling so the compositor actually produces frames. Do NOT
+			// set --disable-gpu-vsync or --headless (both suppress OnPaint), and do NOT
+			// enable external BeginFrame (it can stop OnPaint). NOTE: --disable-gpu also
+			// disables WebGL — getting OnPaint to fire for normal content is step 1;
+			// GPU-accelerated WebGL (Aladin) is a separate follow-up.
+			// Software offscreen rendering WITH software WebGL. --disable-gpu-compositing
+			// keeps OnPaint on the software path; SwiftShader provides a software WebGL
+			// backend whose output lands in the OnPaint buffer (a real-GPU WebGL canvas
+			// would render off-texture and paint black). --enable-begin-frame-scheduling
+			// makes the compositor produce frames. (Do NOT fully --disable-gpu — that
+			// kills WebGL, which Aladin Lite v3 requires.)
+			command_line->AppendSwitch("disable-gpu");
 			command_line->AppendSwitch("disable-gpu-compositing");
-			command_line->AppendSwitchWithValue("use-angle", "swiftshader");
 			command_line->AppendSwitch("enable-unsafe-swiftshader");
-#ifdef __APPLE__
-			// Run the GL/GPU work in the browser process. The renderer still runs
-			// out-of-process (the part that was crashing), but on macOS a separate
-			// GPU *subprocess* fails to launch under offscreen software rendering
-			// (gpu_process_host error 1003 -> "GPU process isn't usable"). Software
-			// SwiftShader has no real GPU to isolate, so in-process is correct here.
-			// Scoped to macOS: the failure was only diagnosed there, and Linux's
-			// out-of-process GPU path is already verified, so don't change it.
-			command_line->AppendSwitch("in-process-gpu");
-#endif
+			command_line->AppendSwitch("enable-begin-frame-scheduling");
 		}
+		// Single-process: run the renderer + GPU inside the browser process. On macOS
+		// the out-of-process model fails — the GPU subprocess won't launch (gpu_process_host
+		// error_code=1003 from the single embedded helper bundle; CEF then fatally aborts
+		// with "GPU process isn't usable. Goodbye.") and the renderer subprocess never
+		// paints (white screen). Single-process behaves identically across WILMA
+		// (Win/iOS/Linux/macOS/Android) with no per-platform branching, and renders
+		// Aladin's WebGL fine. Its one caveat — a teardown crash if the process exits
+		// while CEF threads are live — is handled by driving CefShutdown on app exit
+		// (AppLifecycleListener.onExitRequested -> WebviewManager().quit()).
+		command_line->AppendSwitch("single-process");
 
 		command_line->AppendSwitch("disable-web-security");                                     //disable web security
 		command_line->AppendSwitch("allow-running-insecure-content");                           //allow running insecure content in secure pages

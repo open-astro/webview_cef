@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2026 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -33,12 +33,16 @@
 // by hand. See the translator.README.txt file in the tools directory for
 // more information.
 //
-// $hash=3d208a996f65f37012460edb1890773218580913$
+// $hash=d290b9e19b30f681abd37ad4098195c089cfb3cc$
 //
 
 #ifndef CEF_INCLUDE_CAPI_CEF_SHARED_MEMORY_REGION_CAPI_H_
 #define CEF_INCLUDE_CAPI_CEF_SHARED_MEMORY_REGION_CAPI_H_
 #pragma once
+
+#if defined(BUILDING_CEF_SHARED)
+#error This file cannot be included DLL-side
+#endif
 
 #include "include/capi/cef_base_capi.h"
 
@@ -48,6 +52,8 @@ extern "C" {
 
 ///
 /// Structure that wraps platform-dependent share memory region mapping.
+///
+/// NOTE: This struct is allocated DLL-side.
 ///
 typedef struct _cef_shared_memory_region_t {
   ///

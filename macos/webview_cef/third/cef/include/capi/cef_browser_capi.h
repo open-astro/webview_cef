@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2026 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -33,12 +33,16 @@
 // by hand. See the translator.README.txt file in the tools directory for
 // more information.
 //
-// $hash=e9f34d90eb4af614e35cbb29da0639b62acec7fd$
+// $hash=a935a1fa527e1f635bf33c83c38c82689b13069a$
 //
 
 #ifndef CEF_INCLUDE_CAPI_CEF_BROWSER_CAPI_H_
 #define CEF_INCLUDE_CAPI_CEF_BROWSER_CAPI_H_
 #pragma once
+
+#if defined(BUILDING_CEF_SHARED)
+#error This file cannot be included DLL-side
+#endif
 
 #include "include/capi/cef_base_capi.h"
 #include "include/capi/cef_devtools_message_observer_capi.h"
@@ -61,6 +65,8 @@ struct _cef_client_t;
 /// functions of this structure may be called on any thread unless otherwise
 /// indicated in the comments. When used in the render process the functions of
 /// this structure may only be called on the main thread.
+///
+/// NOTE: This struct is allocated DLL-side.
 ///
 typedef struct _cef_browser_t {
   ///
@@ -198,6 +204,8 @@ typedef struct _cef_browser_t {
 /// Callback structure for cef_browser_host_t::RunFileDialog. The functions of
 /// this structure will be called on the browser process UI thread.
 ///
+/// NOTE: This struct is allocated client-side.
+///
 typedef struct _cef_run_file_dialog_callback_t {
   ///
   /// Base structure.
@@ -217,6 +225,8 @@ typedef struct _cef_run_file_dialog_callback_t {
 ///
 /// Callback structure for cef_browser_host_t::GetNavigationEntries. The
 /// functions of this structure will be called on the browser process UI thread.
+///
+/// NOTE: This struct is allocated client-side.
 ///
 typedef struct _cef_navigation_entry_visitor_t {
   ///
@@ -242,6 +252,8 @@ typedef struct _cef_navigation_entry_visitor_t {
 /// Callback structure for cef_browser_host_t::PrintToPDF. The functions of this
 /// structure will be called on the browser process UI thread.
 ///
+/// NOTE: This struct is allocated client-side.
+///
 typedef struct _cef_pdf_print_callback_t {
   ///
   /// Base structure.
@@ -262,6 +274,8 @@ typedef struct _cef_pdf_print_callback_t {
 ///
 /// Callback structure for cef_browser_host_t::DownloadImage. The functions of
 /// this structure will be called on the browser process UI thread.
+///
+/// NOTE: This struct is allocated client-side.
 ///
 typedef struct _cef_download_image_callback_t {
   ///
@@ -287,6 +301,8 @@ typedef struct _cef_download_image_callback_t {
 /// functions of this structure can only be called in the browser process. They
 /// may be called on any thread in that process unless otherwise indicated in
 /// the comments.
+///
+/// NOTE: This struct is allocated DLL-side.
 ///
 typedef struct _cef_browser_host_t {
   ///
@@ -379,6 +395,12 @@ typedef struct _cef_browser_host_t {
   ///
   cef_window_handle_t(CEF_CALLBACK* get_opener_window_handle)(
       struct _cef_browser_host_t* self);
+
+  ///
+  /// Retrieve the unique identifier of the browser that opened this browser.
+  /// Will return 0 for non-popup browsers.
+  ///
+  int(CEF_CALLBACK* get_opener_identifier)(struct _cef_browser_host_t* self);
 
   ///
   /// Returns true (1) if this browser is wrapped in a cef_browser_view_t.
@@ -660,12 +682,25 @@ typedef struct _cef_browser_host_t {
   void(CEF_CALLBACK* was_hidden)(struct _cef_browser_host_t* self, int hidden);
 
   ///
-  /// Send a notification to the browser that the screen info has changed. The
-  /// browser will then call cef_render_handler_t::GetScreenInfo to update the
-  /// screen information with the new values. This simulates moving the webview
-  /// window from one display to another, or changing the properties of the
-  /// current display. This function is only used when window rendering is
-  /// disabled.
+  /// Notify the browser that screen information has changed. Updated
+  /// information will be sent to the renderer process to configure screen size
+  /// and position values used by CSS and JavaScript (window.deviceScaleFactor,
+  /// window.screenX/Y, window.outerWidth/Height, etc.). For background see
+  /// https://chromiumembedded.github.io/cef/general_usage#coordinate-systems
+  ///
+  /// This function is used with (a) windowless rendering and (b) windowed
+  /// rendering with external (client-provided) root window.
+  ///
+  /// With windowless rendering the browser will call
+  /// cef_render_handler_t::GetScreenInfo,
+  /// cef_render_handler_t::GetRootScreenRect and
+  /// cef_render_handler_t::GetViewRect. This simulates moving or resizing the
+  /// root window in the current display, moving the root window from one
+  /// display to another, or changing the properties of the current display.
+  ///
+  /// With windowed rendering the browser will call
+  /// cef_display_handler_t::GetRootWindowScreenRect and use the associated
+  /// display properties.
   ///
   void(CEF_CALLBACK* notify_screen_info_changed)(
       struct _cef_browser_host_t* self);
@@ -744,8 +779,8 @@ typedef struct _cef_browser_host_t {
   /// Returns the maximum rate in frames per second (fps) that
   /// cef_render_handler_t::OnPaint will be called for a windowless browser. The
   /// actual fps may be lower if the browser cannot generate frames at the
-  /// requested rate. The minimum value is 1 and the maximum value is 60
-  /// (default 30). This function can only be called on the UI thread.
+  /// requested rate. The minimum value is 1 and the default value is 30. This
+  /// function can only be called on the UI thread.
   ///
   int(CEF_CALLBACK* get_windowless_frame_rate)(
       struct _cef_browser_host_t* self);
@@ -754,8 +789,8 @@ typedef struct _cef_browser_host_t {
   /// Set the maximum rate in frames per second (fps) that
   /// cef_render_handler_t:: OnPaint will be called for a windowless browser.
   /// The actual fps may be lower if the browser cannot generate frames at the
-  /// requested rate. The minimum value is 1 and the maximum value is 60
-  /// (default 30). Can also be set at browser creation via
+  /// requested rate. The minimum value is 1 and the default value is 30. Can
+  /// also be set at browser creation via
   /// cef_browser_tSettings.windowless_frame_rate.
   ///
   void(CEF_CALLBACK* set_windowless_frame_rate)(
@@ -975,18 +1010,22 @@ typedef struct _cef_browser_host_t {
                                       int will_cause_resize);
 
   ///
-  /// Returns true (1) if a Chrome command is supported and enabled. Values for
-  /// |command_id| can be found in the cef_command_ids.h file. This function can
-  /// only be called on the UI thread. Only used with Chrome style.
+  /// Returns true (1) if a Chrome command is supported and enabled. Use the
+  /// cef_id_for_command_id_name() function for version-safe mapping of command
+  /// IDC names from cef_command_ids.h to version-specific numerical
+  /// |command_id| values. This function can only be called on the UI thread.
+  /// Only used with Chrome style.
   ///
   int(CEF_CALLBACK* can_execute_chrome_command)(
       struct _cef_browser_host_t* self,
       int command_id);
 
   ///
-  /// Execute a Chrome command. Values for |command_id| can be found in the
-  /// cef_command_ids.h file. |disposition| provides information about the
-  /// intended command target. Only used with Chrome style.
+  /// Execute a Chrome command. Use the cef_id_for_command_id_name() function
+  /// for version-safe mapping of command IDC names from cef_command_ids.h to
+  /// version-specific numerical |command_id| values. |disposition| provides
+  /// information about the intended command target. Only used with Chrome
+  /// style.
   ///
   void(CEF_CALLBACK* execute_chrome_command)(
       struct _cef_browser_host_t* self,
@@ -1010,6 +1049,23 @@ typedef struct _cef_browser_host_t {
   ///
   cef_runtime_style_t(CEF_CALLBACK* get_runtime_style)(
       struct _cef_browser_host_t* self);
+
+#if CEF_API_ADDED(CEF_EXPERIMENTAL)
+  ///
+  /// Enable or disable CDP accessibility tree viewport collapse for this
+  /// browser. When enabled, off-screen landmarks and headings are serialized as
+  /// summaries and other off-screen nodes are pruned. Overrides the
+  /// cef_browser_tSettings.ax_viewport_collapse value. If called on the UI
+  /// thread the change will be applied immediately. Otherwise, the change will
+  /// be applied asynchronously on the UI thread. WARNING: This collapses the
+  /// CDP accessibility tree and disables CDP dynamic tree updates (nodesUpdated
+  /// events). The DevTools Accessibility panel will show an incomplete tree.
+  /// Platform screen readers (NVDA, JAWS, VoiceOver) are unaffected - they use
+  /// a separate code path.
+  ///
+  void(CEF_CALLBACK* set_ax_viewport_collapse)(struct _cef_browser_host_t* self,
+                                               int enabled);
+#endif
 } cef_browser_host_t;
 
 ///
@@ -1045,6 +1101,12 @@ CEF_EXPORT cef_browser_t* cef_browser_host_create_browser_sync(
     const struct _cef_browser_settings_t* settings,
     struct _cef_dictionary_value_t* extra_info,
     struct _cef_request_context_t* request_context);
+
+///
+/// Returns the browser (if any) with the specified identifier.
+///
+CEF_EXPORT cef_browser_t* cef_browser_host_get_browser_by_identifier(
+    int browser_id);
 
 #ifdef __cplusplus
 }

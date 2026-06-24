@@ -43,6 +43,13 @@ public:
         [textureRegistry textureFrameAvailable: textureId];
     }
 
+    // GPU shared-texture frame: |sharedHandle| is an IOSurface from CEF's
+    // OnAcceleratedPaint, wrapped zero-copy as the Flutter texture's CVPixelBuffer.
+    virtual void onAcceleratedFrame(void* sharedHandle, int width, int height) {
+        [texture onIOSurface:(IOSurfaceRef)sharedHandle width:width height:height];
+        [textureRegistry textureFrameAvailable: textureId];
+    }
+
 private:
     WebviewCefTexture* texture;
     NSObject<FlutterTextureRegistry>* textureRegistry;

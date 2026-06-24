@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2026 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -33,12 +33,16 @@
 // by hand. See the translator.README.txt file in the tools directory for
 // more information.
 //
-// $hash=06dee162d385bd75338147e3741b3d526755cc21$
+// $hash=7eaff7067d4d35abfcd0a4368aa020ee8fa537a0$
 //
 
 #ifndef CEF_INCLUDE_CAPI_VIEWS_CEF_DISPLAY_CAPI_H_
 #define CEF_INCLUDE_CAPI_VIEWS_CEF_DISPLAY_CAPI_H_
 #pragma once
+
+#if defined(BUILDING_CEF_SHARED)
+#error This file cannot be included DLL-side
+#endif
 
 #include "include/capi/cef_base_capi.h"
 
@@ -53,6 +57,11 @@ extern "C" {
 /// values are in density independent pixel (DIP) coordinates unless otherwise
 /// indicated. Methods must be called on the browser process UI thread unless
 /// otherwise indicated.
+///
+/// For details on coordinate systems and usage see
+/// https://chromiumembedded.github.io/cef/general_usage#coordinate-systems
+///
+/// NOTE: This struct is allocated DLL-side.
 ///
 typedef struct _cef_display_t {
   ///
@@ -69,7 +78,9 @@ typedef struct _cef_display_t {
   /// Returns this Display's device pixel scale factor. This specifies how much
   /// the UI should be scaled when the actual output has more pixels than
   /// standard displays (which is around 100~120dpi). The potential return
-  /// values differ by platform.
+  /// values differ by platform. Windowed browsers with 1.0 zoom will have a
+  /// JavaScript `window.devicePixelRatio` value matching the associated
+  /// Display's get_device_scale_factor() value.
   ///
   float(CEF_CALLBACK* get_device_scale_factor)(struct _cef_display_t* self);
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2026 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -33,15 +33,20 @@
 // by hand. See the translator.README.txt file in the tools directory for
 // more information.
 //
-// $hash=f8e8992eedf254a60e2875715c3adfa23ca4ae20$
+// $hash=24d75fec9771153753f998292fd7daf15d8e4883$
 //
 
 #ifndef CEF_INCLUDE_CAPI_VIEWS_CEF_BROWSER_VIEW_DELEGATE_CAPI_H_
 #define CEF_INCLUDE_CAPI_VIEWS_CEF_BROWSER_VIEW_DELEGATE_CAPI_H_
 #pragma once
 
+#if defined(BUILDING_CEF_SHARED)
+#error This file cannot be included DLL-side
+#endif
+
 #include "include/capi/cef_client_capi.h"
 #include "include/capi/views/cef_view_delegate_capi.h"
+#include "include/cef_api_hash.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,6 +59,8 @@ struct _cef_browser_view_t;
 /// Implement this structure to handle BrowserView events. The functions of this
 /// structure will be called on the browser process UI thread unless otherwise
 /// indicated.
+///
+/// NOTE: This struct is allocated client-side.
 ///
 typedef struct _cef_browser_view_delegate_t {
   ///
@@ -148,6 +155,27 @@ typedef struct _cef_browser_view_delegate_t {
   ///
   cef_runtime_style_t(CEF_CALLBACK* get_browser_runtime_style)(
       struct _cef_browser_view_delegate_t* self);
+
+#if CEF_API_ADDED(13601)
+  ///
+  /// Return true (1) to allow the use of JavaScript moveTo/By() and
+  /// resizeTo/By() (without user activation) with Document picture-in-picture
+  /// popups.
+  ///
+  int(CEF_CALLBACK* allow_move_for_picture_in_picture)(
+      struct _cef_browser_view_delegate_t* self,
+      struct _cef_browser_view_t* browser_view);
+#endif
+
+#if CEF_API_ADDED(14400)
+  ///
+  /// Return true (1) to allow opening Document picture-in-picture without user
+  /// activation. Default is false (0) (user activation required).
+  ///
+  int(CEF_CALLBACK* allow_picture_in_picture_without_user_activation)(
+      struct _cef_browser_view_delegate_t* self,
+      struct _cef_browser_view_t* browser_view);
+#endif
 } cef_browser_view_delegate_t;
 
 #ifdef __cplusplus
