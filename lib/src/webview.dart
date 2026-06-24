@@ -374,9 +374,22 @@ class WebViewState extends State<WebView> with WebeViewTextInput {
       setState(() {});
     };
 
-    // Report initial surface size
+    // Report initial surface size.
     WidgetsBinding.instance
         .addPostFrameCallback((_) => _reportSurfaceSize(context));
+    // Re-report the surface size for the first few seconds after creation.
+    // The window/layout often keeps settling AFTER the browser is created (the
+    // macOS window open/restore animation grows the view from a small initial
+    // size to its final one), and SizeChangedLayoutNotifier doesn't reliably
+    // fire for that settling. Without these follow-ups the CEF browser stays
+    // pinned to the tiny initial size and the webview renders black until some
+    // later resize (e.g. the user dragging the window) re-issues a WasResized.
+    // Re-reporting catches the final size and kicks the first real frame.
+    for (final ms in const [100, 250, 500, 900, 1500, 2500, 4000]) {
+      Future.delayed(Duration(milliseconds: ms), () {
+        if (mounted) _reportSurfaceSize(context);
+      });
+    }
   }
 
   @override
