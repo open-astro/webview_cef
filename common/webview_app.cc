@@ -106,21 +106,17 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
 	{
 		if (!m_bEnableGPU)
 		{
-			// Software offscreen rendering — the canonical, portable combo that makes
-			// CefRenderHandler::OnPaint actually fire (this is what upstream cefclient
-			// appends for OSR). Fully disable the GPU and GPU compositing so frames come
-			// straight from the software compositor with no GPU readback, and enable
-			// begin-frame scheduling so the compositor actually produces frames. Do NOT
-			// set --disable-gpu-vsync or --headless (both suppress OnPaint), and do NOT
-			// enable external BeginFrame (it can stop OnPaint). NOTE: --disable-gpu also
-			// disables WebGL — getting OnPaint to fire for normal content is step 1;
-			// GPU-accelerated WebGL (Aladin) is a separate follow-up.
-			// Software offscreen rendering WITH software WebGL. --disable-gpu-compositing
-			// keeps OnPaint on the software path; SwiftShader provides a software WebGL
-			// backend whose output lands in the OnPaint buffer (a real-GPU WebGL canvas
-			// would render off-texture and paint black). --enable-begin-frame-scheduling
-			// makes the compositor produce frames. (Do NOT fully --disable-gpu — that
-			// kills WebGL, which Aladin Lite v3 requires.)
+			// Software offscreen rendering WITH software WebGL — the combo that makes
+			// CefRenderHandler::OnPaint fire AND lets WebGL (Aladin Lite v3) paint.
+			// --disable-gpu + --disable-gpu-compositing keep the whole pipeline on the
+			// software compositor so frames come straight from OnPaint with no GPU
+			// readback. Modern Chromium disables WebGL when the GPU is off UNLESS
+			// --enable-unsafe-swiftshader is set, which re-enables it via *in-process*
+			// SwiftShader whose frames land in that same OnPaint buffer. Do NOT add
+			// --use-angle=swiftshader (forces an ANGLE GPU process; the software OnPaint
+			// readback then comes back blank), and do NOT set --disable-gpu-vsync or
+			// --headless (both suppress OnPaint). --enable-begin-frame-scheduling makes
+			// the software compositor actually produce frames.
 			command_line->AppendSwitch("disable-gpu");
 			command_line->AppendSwitch("disable-gpu-compositing");
 			command_line->AppendSwitch("enable-unsafe-swiftshader");
@@ -146,23 +142,11 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
         // process; no command-line switch is added here. The original upstream line
         // was misspelled "no-sanbox" and was a no-op anyway.)
 
-		//http://www.chromium.org/developers/design-documents/process-models
-		if (m_uMode == 1)
-		{
-			command_line->AppendSwitch("process-per-site");                                     //each site in its own process
-			command_line->AppendSwitchWithValue("renderer-process-limit", "8");              //limit renderer process count to decrease memory usage
-		}
-		else if (m_uMode == 2)
-		{
-			command_line->AppendSwitch("process-per-tab");                                      //each tab in its own process
-		}
-		else if (m_uMode == 3)
-		{
-			// All in one process. On macOS this bypasses the "<App> Helper.app"
-			// subprocess entirely; it's also what startCEF falls back to when no
-			// helper bundle is embedded. Debug-only / unstable for long sessions.
-			command_line->AppendSwitch("single-process");
-		}
+		// NOTE: the legacy m_uMode process-model switches (process-per-site /
+		// process-per-tab / single-process — http://www.chromium.org/developers/design-documents/process-models)
+		// are intentionally omitted: --single-process is forced unconditionally above,
+		// which overrides any per-process-model selection, so honoring m_uMode here
+		// would just emit contradictory switches.
 		command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");     //autoplay policy for media
 
         //Support cross domain requests
@@ -241,11 +225,13 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
 #endif
     }
 
-    // NOTE: single-process mode is intentionally NOT forced on macOS anymore. It
-    // is a debug-only Chromium mode and is unstable for long-running WebGL/font
-    // work (renderer CHECK/abort after hours). macOS now runs multi-process via
-    // the bundled "<App> Helper.app" subprocess (see browser_subprocess_path in
-    // WebviewPlugin::startCEF + the helper target the host app embeds).
+    // NOTE: --single-process IS forced for every process type (see the unconditional
+    // AppendSwitch above). It's the only model that renders Aladin's WebGL on CEF 149
+    // across WILMA: the out-of-process model fails on macOS (GPU subprocess won't
+    // launch from the single embedded helper bundle; renderer never paints). Its
+    // teardown caveat is handled by driving CefShutdown on app exit (stopCEF, gated on
+    // isCefInitialized). The "<App> Helper.app" the host embeds still serves the
+    // remaining out-of-process utilities (network/storage), not the renderer/GPU.
 }
 
 void WebviewApp::OnContextInitialized()

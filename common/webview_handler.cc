@@ -678,7 +678,12 @@ void WebviewHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) {
 
 bool WebviewHandler::GetScreenInfo(CefRefPtr<CefBrowser> browser, CefScreenInfo& screen_info) {
     //todo: hi dpi support
-    screen_info.device_scale_factor  = browser_map_[browser->GetIdentifier()].dpi;
+    // Use find() (not operator[]) so a popup/unknown browser id doesn't silently
+    // insert a zero-initialized entry into browser_map_ — match the sibling methods.
+    auto it = browser_map_.find(browser->GetIdentifier());
+    if (it != browser_map_.end()) {
+        screen_info.device_scale_factor = it->second.dpi;
+    }
     return false;
 }
 

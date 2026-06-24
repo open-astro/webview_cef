@@ -714,7 +714,10 @@ namespace webview_cef {
 		//cef message run in another thread on windows/linux
 		cefs.multi_threaded_message_loop = true;
 #endif
-		CefInitialize(mainArgs, cefs, app.get(), nullptr);
+		// Record success so (1) a second "init" call doesn't re-run CefInitialize
+		// (UB per CEF) and (2) stopCEF()'s guard lets CefShutdown actually run on
+		// exit. Without this the clean-shutdown path is a no-op.
+		isCefInitialized = CefInitialize(mainArgs, cefs, app.get(), nullptr);
 	}
 
 	void doMessageLoopWork(){
