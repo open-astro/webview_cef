@@ -713,9 +713,14 @@ void WebviewHandler::OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, CefRender
     if (!browser->IsPopup() && onAcceleratedPaintCallback != nullptr &&
         info.shared_texture_io_surface != nullptr) {
         auto it = browser_map_.find(browser->GetIdentifier());
-        int w = (it != browser_map_.end()) ? it->second.width : 0;
-        int h = (it != browser_map_.end()) ? it->second.height : 0;
-        onAcceleratedPaintCallback(browser->GetIdentifier(), info.shared_texture_io_surface, w, h);
+        // Skip if the browser isn't tracked yet or has no real size: forwarding the
+        // surface with w=0,h=0 would make onIOSurface wrap a zero-dimension
+        // CVPixelBuffer (an unusable/black frame).
+        if (it == browser_map_.end() || it->second.width <= 0 || it->second.height <= 0) {
+            return;
+        }
+        onAcceleratedPaintCallback(browser->GetIdentifier(), info.shared_texture_io_surface,
+                                   it->second.width, it->second.height);
     }
 }
 

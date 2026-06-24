@@ -122,17 +122,6 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
 			command_line->AppendSwitch("enable-unsafe-swiftshader");
 			command_line->AppendSwitch("enable-begin-frame-scheduling");
 		}
-		// Single-process: run the renderer + GPU inside the browser process. On macOS
-		// the out-of-process model fails — the GPU subprocess won't launch (gpu_process_host
-		// error_code=1003 from the single embedded helper bundle; CEF then fatally aborts
-		// with "GPU process isn't usable. Goodbye.") and the renderer subprocess never
-		// paints (white screen). Single-process behaves identically across WILMA
-		// (Win/iOS/Linux/macOS/Android) with no per-platform branching, and renders
-		// Aladin's WebGL fine. Its one caveat — a teardown crash if the process exits
-		// while CEF threads are live — is handled by driving CefShutdown on app exit
-		// (AppLifecycleListener.onExitRequested -> WebviewManager().quit()).
-		command_line->AppendSwitch("single-process");
-
 		command_line->AppendSwitch("disable-web-security");                                     //disable web security
 		command_line->AppendSwitch("allow-running-insecure-content");                           //allow running insecure content in secure pages
 		// Don't create a "GPUCache" directory when cache-path is unspecified.
@@ -142,7 +131,22 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
         // process; no command-line switch is added here. The original upstream line
         // was misspelled "no-sanbox" and was a no-op anyway.)
 
-		//http://www.chromium.org/developers/design-documents/process-models
+#ifdef __APPLE__
+		// macOS: force single-process (renderer + GPU inside the browser process).
+		// The out-of-process model fails here — the GPU subprocess won't launch
+		// (gpu_process_host error_code=1003 from the single embedded helper bundle;
+		// CEF then fatally aborts "GPU process isn't usable. Goodbye.") and the
+		// renderer subprocess never paints (white screen). This DISABLES the renderer
+		// sandbox, which is acceptable for this trusted-content OSR embed (Aladin Lite
+		// from a bundled page); the teardown caveat (exit() racing live CEF threads)
+		// is handled by driving CefShutdown on app exit (AppLifecycleListener
+		// .onExitRequested -> WebviewManager().quit()). The m_uMode process-model
+		// selection is intentionally skipped on macOS — single-process overrides it.
+		command_line->AppendSwitch("single-process");
+#else
+		// Linux/Windows: keep the multi-process model (out-of-process GPU/renderer is
+		// verified working and preserves the renderer sandbox). Honor the caller's
+		// requested process model. http://www.chromium.org/developers/design-documents/process-models
 		if (m_uMode == 1)
 		{
 			command_line->AppendSwitch("process-per-site");                                     //each site in its own process
@@ -154,11 +158,9 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
 		}
 		else if (m_uMode == 3)
 		{
-			// All in one process. On macOS this bypasses the "<App> Helper.app"
-			// subprocess entirely; it's also what startCEF falls back to when no
-			// helper bundle is embedded. Debug-only / unstable for long sessions.
-			command_line->AppendSwitch("single-process");
+			command_line->AppendSwitch("single-process");                                       //all in one process (debug-only / unstable)
 		}
+#endif
 		command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");     //autoplay policy for media
 
         //Support cross domain requests

@@ -127,7 +127,7 @@ helper.build_configurations.each do |c|
   s['INFOPLIST_FILE']               = helper_plist
   s['CODE_SIGN_ENTITLEMENTS']       = helper_ents
   s['MACOSX_DEPLOYMENT_TARGET']     = '10.15'
-  s['CLANG_CXX_LANGUAGE_STANDARD']  = 'c++17'
+  s['CLANG_CXX_LANGUAGE_STANDARD']  = 'c++20'
   s['HEADER_SEARCH_PATHS']          = ['$(inherited)', cef_dir]
   s['LIBRARY_SEARCH_PATHS']         = ['$(inherited)', cef_dir]
   # The CEF framework is embedded in the OUTER app's Contents/Frameworks dir.
