@@ -242,6 +242,10 @@ namespace webview_cef {
 		m_handler->onJavaScriptChannelMessage = nullptr;
 		m_handler->onFocusedNodeChangeMessage = nullptr;
 		m_handler->onImeCompositionRangeChangedMessage = nullptr;
+		// onLoadStart/onLoadEnd capture m_invokeFunc too; null them here as well so a
+		// late CEF load event after ~WebviewPlugin() can't fire a dangling capture.
+		m_handler->onLoadStart = nullptr;
+		m_handler->onLoadEnd = nullptr;
 		m_init = false;
 	}
 
@@ -492,7 +496,10 @@ namespace webview_cef {
 			});
 		}
 		else {
-			result = 0;
+			// Unknown method: complete the callback with a 0 (failure) result so the
+			// Dart-side await resolves (to nil) instead of hanging forever. Assigning
+			// `result = 0` would only null the std::function, never invoking it.
+			result(0, nullptr);
 		}
 	}
 

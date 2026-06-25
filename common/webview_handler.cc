@@ -7,6 +7,7 @@
 #include <sstream>
 #include <string>
 #include <iostream>
+#include <atomic>
 #include <chrono>
 #include <unordered_map>
 #include <cstdint>
@@ -643,10 +644,12 @@ void WebviewHandler::sendJavaScriptChannelCallBack(const bool error, const std::
 
 static std::string GetCallbackId()
 {
-    auto time = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now());
-	time_t timestamp = time.time_since_epoch().count();
-    return std::to_string(timestamp);
-} 
+    // Monotonic per-process counter, not a wall-clock timestamp: two calls within
+    // the same nanosecond tick (or a clock that steps backwards) would otherwise
+    // collide and route a JS result to the wrong pending callback.
+    static std::atomic<uint64_t> counter{0};
+    return std::to_string(counter.fetch_add(1, std::memory_order_relaxed));
+}
 
 void WebviewHandler::executeJavaScript(int browserId, const std::string code, std::function<void(CefRefPtr<CefValue>)> callback)
 {
