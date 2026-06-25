@@ -20,6 +20,12 @@
     CVPixelBufferPoolRef _pool;
     size_t _poolWidth;
     size_t _poolHeight;
+    // GPU-path (onIOSurface) only: the CEF IOSurface currently wrapped by
+    // _pixelBuffer, held with IOSurfaceIncrementUseCount so CEF's surface pool
+    // won't recycle (overwrite) it while Flutter is still compositing it. NULL on
+    // the CPU path. Balanced by a matching decrement when _pixelBuffer is replaced
+    // or in dealloc.
+    IOSurfaceRef _heldSurface;
 }
 
 - (void)onFrame:(const void *)buffer width:(int64_t)width height:(int64_t)height;

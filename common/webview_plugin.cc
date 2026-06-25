@@ -768,14 +768,17 @@ namespace webview_cef {
 
     void stopCEF()
     {
-		// Guard: calling CefShutdown() without a matching CefInitialize() trips a
-		// CEF DCHECK / crashes. The app drives this from a lifecycle hook on every
-		// exit (AppLifecycleListener.onExitRequested), which can fire even when the
-		// webview was never opened, so no-op when CEF isn't running.
-		if (!isCefInitialized) {
+		// Calling CefShutdown() without a matching CefInitialize() — or twice —
+		// trips a CEF DCHECK / crashes (UB). The app drives this from a lifecycle
+		// hook on every exit (AppLifecycleListener.onExitRequested), which can fire
+		// even when the webview was never opened. Atomically claim the shutdown so
+		// only the caller that flips the flag true->false runs CefShutdown(); a
+		// plain check-then-act would let two concurrent callers both pass the guard
+		// and double-invoke it.
+		bool expected = true;
+		if (!isCefInitialized.compare_exchange_strong(expected, false)) {
 			return;
 		}
 		CefShutdown();
-		isCefInitialized = false;
     }
 }

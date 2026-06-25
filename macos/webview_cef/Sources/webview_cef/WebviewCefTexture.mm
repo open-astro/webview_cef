@@ -23,6 +23,10 @@ typedef void(^RetainSelfBlock)(void);
 - (void)dealloc {
     if (_pool) { CVPixelBufferPoolRelease(_pool); _pool = NULL; }
     if (_pixelBuffer) { CVPixelBufferRelease(_pixelBuffer); _pixelBuffer = NULL; }
+    if (_heldSurface) { IOSurfaceDecrementUseCount(_heldSurface); _heldSurface = NULL; }
+    // _pixelBufferTemp is intentionally NOT released here: copyPixelBuffer hands its
+    // retained reference to the Flutter engine, which owns and releases it per the
+    // FlutterTexture contract. Releasing it again would over-release that buffer.
 }
 
 - (void)onFrame:(const void *)buffer width:(int64_t)width height:(int64_t)height{
@@ -72,6 +76,8 @@ typedef void(^RetainSelfBlock)(void);
     if(_pixelBuffer) {
         CVPixelBufferRelease(_pixelBuffer);
     }
+    // A CPU frame supersedes any GPU surface we were holding — release that hold.
+    if (_heldSurface) { IOSurfaceDecrementUseCount(_heldSurface); _heldSurface = NULL; }
     _pixelBuffer = buf;
     dispatch_semaphore_signal(_lock);
 }
@@ -93,11 +99,18 @@ typedef void(^RetainSelfBlock)(void);
         if (buf) { CVPixelBufferRelease(buf); }
         return;
     }
+    // Mark the surface in-use so CEF's surface pool won't recycle (overwrite) it
+    // while Flutter is still compositing the CVPixelBuffer that wraps it — without
+    // this the zero-copy path can tear/corrupt. Balanced when this buffer is
+    // replaced (here or in onFrame) or in dealloc.
+    IOSurfaceIncrementUseCount(surface);
     dispatch_semaphore_wait(_lock, DISPATCH_TIME_FOREVER);
     if (_pixelBuffer) {
         CVPixelBufferRelease(_pixelBuffer);
     }
+    if (_heldSurface) { IOSurfaceDecrementUseCount(_heldSurface); }
     _pixelBuffer = buf;
+    _heldSurface = surface;
     dispatch_semaphore_signal(_lock);
 }
 
