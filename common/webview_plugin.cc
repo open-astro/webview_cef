@@ -640,11 +640,19 @@ namespace webview_cef {
 		// "may lead to unintended process singleton behavior" warning on older
 		// Chromium and became a hard CHECK during CefInitialize on Chromium 149
 		// (macOS), so set a per-user cache dir explicitly. CEF creates the leaf dir.
-		if (const char* home = getenv("HOME")) {
-			if (home[0] != '\0') {
-				CefString(&cefs.root_cache_path) =
-					std::string(home) + "/Library/Caches/webview_cef";
+		// HOME can be unset under launchd / CI / a sandbox; since an empty
+		// root_cache_path trips that same CHECK, fall back to the per-user temp
+		// dir (TMPDIR) or /tmp so CefInitialize always gets a writable path.
+		{
+			std::string cacheRoot;
+			if (const char* home = getenv("HOME"); home && home[0] != '\0') {
+				cacheRoot = std::string(home) + "/Library/Caches/webview_cef";
+			} else {
+				const char* tmp = getenv("TMPDIR");
+				std::string base = (tmp && tmp[0] != '\0') ? std::string(tmp) : std::string("/tmp");
+				cacheRoot = base + "/webview_cef_cache";
 			}
+			CefString(&cefs.root_cache_path) = cacheRoot;
 		}
 		// Run subprocesses (renderer/GPU/...) out-of-process via the helper bundle
 		// the host app embeds at:
@@ -721,6 +729,13 @@ namespace webview_cef {
 	}
 
 	void doMessageLoopWork(){
+		// The macOS wrapper pumps this from a repeating NSTimer that is never
+		// invalidated; after stopCEF() runs CefShutdown() on exit the timer can
+		// still fire once or twice. Pumping a shut-down CEF instance is UB, so
+		// no-op once CEF is no longer initialized.
+		if (!isCefInitialized) {
+			return;
+		}
 		CefDoMessageLoopWork();
 	}
 

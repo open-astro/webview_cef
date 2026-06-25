@@ -178,6 +178,13 @@ against.
 > apply to each renderer subprocess. The webview therefore loads pages without the
 > OS sandbox or the same-origin policy — only load content you trust, and don't
 > point it at arbitrary remote origins.
+>
+> **These flags are applied unconditionally to every embedder — there is
+> currently no opt-out API.** They suit this fork's intended use (a fixed, bundled
+> local page that fetches its own cross-origin tiles), but they silently weaken
+> the security posture of any other host. If you embed this plugin to load
+> untrusted or third-party origins, fork the command-line setup in
+> `common/webview_app.cc` (`OnBeforeCommandLineProcessing`) to drop them.
 
 > Offscreen (windowless) rendering uses ANGLE's SwiftShader for WebGL with an
 > in-process GPU, and disables Chromium 130's Rust `fontations` font backend
