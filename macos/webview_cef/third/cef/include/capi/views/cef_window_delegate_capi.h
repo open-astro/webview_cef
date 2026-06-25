@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2026 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -33,12 +33,16 @@
 // by hand. See the translator.README.txt file in the tools directory for
 // more information.
 //
-// $hash=bafa7ddf3dfbc3fa82b1fb8a064b51f0791b29b6$
+// $hash=436fe664d147e9d9c0c84ef1d0aab437ad00b18f$
 //
 
 #ifndef CEF_INCLUDE_CAPI_VIEWS_CEF_WINDOW_DELEGATE_CAPI_H_
 #define CEF_INCLUDE_CAPI_VIEWS_CEF_WINDOW_DELEGATE_CAPI_H_
 #pragma once
+
+#if defined(BUILDING_CEF_SHARED)
+#error This file cannot be included DLL-side
+#endif
 
 #include "include/capi/views/cef_panel_delegate_capi.h"
 
@@ -52,6 +56,8 @@ struct _cef_window_t;
 /// Implement this structure to handle window events. The functions of this
 /// structure will be called on the browser process UI thread unless otherwise
 /// indicated.
+///
+/// NOTE: This struct is allocated client-side.
 ///
 typedef struct _cef_window_delegate_t {
   ///

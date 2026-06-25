@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2026 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -33,12 +33,16 @@
 // by hand. See the translator.README.txt file in the tools directory for
 // more information.
 //
-// $hash=5151b6ea3c06e46a75f2cd7679044a2891063d29$
+// $hash=dc7ec3b13cc21a4b15675ed1139834b076e97dde$
 //
 
 #ifndef CEF_INCLUDE_CAPI_CEF_RENDER_HANDLER_CAPI_H_
 #define CEF_INCLUDE_CAPI_CEF_RENDER_HANDLER_CAPI_H_
 #pragma once
+
+#if defined(BUILDING_CEF_SHARED)
+#error This file cannot be included DLL-side
+#endif
 
 #include "include/capi/cef_accessibility_handler_capi.h"
 #include "include/capi/cef_base_capi.h"
@@ -52,6 +56,8 @@ extern "C" {
 ///
 /// Implement this structure to handle events when window rendering is disabled.
 /// The functions of this structure will be called on the UI thread.
+///
+/// NOTE: This struct is allocated client-side.
 ///
 typedef struct _cef_render_handler_t {
   ///
@@ -150,10 +156,10 @@ typedef struct _cef_render_handler_t {
   /// |type| indicates whether the element is the view or the popup widget.
   /// |dirtyRects| contains the set of rectangles in pixel coordinates that need
   /// to be repainted. |info| contains the shared handle; on Windows it is a
-  /// HANDLE to a texture that can be opened with D3D11 OpenSharedResource, on
-  /// macOS it is an IOSurface pointer that can be opened with Metal or OpenGL,
-  /// and on Linux it contains several planes, each with an fd to the underlying
-  /// system native buffer.
+  /// HANDLE to a texture that can be opened with D3D11 OpenSharedResource1 or
+  /// D3D12 OpenSharedHandle, on macOS it is an IOSurface pointer that can be
+  /// opened with Metal or OpenGL, and on Linux it contains several planes, each
+  /// with an fd to the underlying system native buffer.
   ///
   /// The underlying implementation uses a pool to deliver frames. As a result,
   /// the handle may differ every frame depending on how many frames are in-

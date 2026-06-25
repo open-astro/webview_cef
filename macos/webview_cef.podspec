@@ -26,12 +26,13 @@ Flutter webview backed by CEF (Chromium Embedded Framework)
   s.xcconfig = { "HEADER_SEARCH_PATHS" => $dir}
   # s.private_header_files = '../common/simple_app.h', '../common/simple_handler.h'
 
-  s.platform = :osx, '10.15'
-  # CEF 130's headers require C++17 (std::in_place_t, void_t, conjunction,
-  # bool_constant, etc.); the pod target otherwise inherits gnu++14 and fails.
+  s.platform = :osx, '12.0'
+  # CEF 149's headers require C++20 (concepts: std::same_as / derived_from /
+  # convertible_to, requires-clauses in cef_scoped_refptr.h); the pod target
+  # otherwise inherits gnu++14 and fails.
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
-    'CLANG_CXX_LANGUAGE_STANDARD' => 'c++17',
+    'CLANG_CXX_LANGUAGE_STANDARD' => 'c++20',
   }
   s.swift_version = '5.0'
 end

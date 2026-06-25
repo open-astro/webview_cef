@@ -13,7 +13,7 @@ import PackageDescription
 let package = Package(
     name: "webview_cef",
     platforms: [
-        .macOS("10.15"),
+        .macOS("12.0"),
     ],
     products: [
         .library(name: "webview-cef", targets: ["webview_cef"]),
@@ -43,11 +43,17 @@ let package = Package(
             ],
             cxxSettings: [
                 .headerSearchPath("../../third/cef"),
+                // CEF 149's headers require C++20 (concepts: std::same_as /
+                // derived_from / convertible_to, requires-clauses in cef_scoped_refptr.h).
+                // Force it on the compile command: Flutter's SPM integration compiles
+                // these C++ targets with the host Runner project's CLANG_CXX_LANGUAGE_STANDARD
+                // (c++17), which otherwise overrides the package-level cxxLanguageStandard below.
+                .unsafeFlags(["-std=c++20"]),
             ],
             linkerSettings: [
                 .linkedFramework("CoreVideo"),
             ]
         ),
     ],
-    cxxLanguageStandard: .cxx17
+    cxxLanguageStandard: .cxx20
 )

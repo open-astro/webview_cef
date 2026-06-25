@@ -106,28 +106,22 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
 	{
 		if (!m_bEnableGPU)
 		{
-			// Windowless (offscreen) rendering composites frames on the CPU so
-			// OnPaint keeps delivering to the Flutter texture — but WebGL apps
-			// such as Aladin Lite v3 still need a GL backend. Fully disabling the
-			// GPU removes WebGL and paints those pages as a black rectangle, so
-			// instead keep software compositing and route WebGL through ANGLE's
-			// SwiftShader. Chromium 130 dropped the automatic software-WebGL
-			// fallback, so it must be opted into explicitly.
+			// Software offscreen rendering WITH software WebGL — the combo that makes
+			// CefRenderHandler::OnPaint fire AND lets WebGL (Aladin Lite v3) paint.
+			// --disable-gpu + --disable-gpu-compositing keep the whole pipeline on the
+			// software compositor so frames come straight from OnPaint with no GPU
+			// readback. Modern Chromium disables WebGL when the GPU is off UNLESS
+			// --enable-unsafe-swiftshader is set, which re-enables it via *in-process*
+			// SwiftShader whose frames land in that same OnPaint buffer. Do NOT add
+			// --use-angle=swiftshader (forces an ANGLE GPU process; the software OnPaint
+			// readback then comes back blank), and do NOT set --disable-gpu-vsync or
+			// --headless (both suppress OnPaint). --enable-begin-frame-scheduling makes
+			// the software compositor actually produce frames.
+			command_line->AppendSwitch("disable-gpu");
 			command_line->AppendSwitch("disable-gpu-compositing");
-			command_line->AppendSwitchWithValue("use-angle", "swiftshader");
 			command_line->AppendSwitch("enable-unsafe-swiftshader");
-#ifdef __APPLE__
-			// Run the GL/GPU work in the browser process. The renderer still runs
-			// out-of-process (the part that was crashing), but on macOS a separate
-			// GPU *subprocess* fails to launch under offscreen software rendering
-			// (gpu_process_host error 1003 -> "GPU process isn't usable"). Software
-			// SwiftShader has no real GPU to isolate, so in-process is correct here.
-			// Scoped to macOS: the failure was only diagnosed there, and Linux's
-			// out-of-process GPU path is already verified, so don't change it.
-			command_line->AppendSwitch("in-process-gpu");
-#endif
+			command_line->AppendSwitch("enable-begin-frame-scheduling");
 		}
-
 		command_line->AppendSwitch("disable-web-security");                                     //disable web security
 		command_line->AppendSwitch("allow-running-insecure-content");                           //allow running insecure content in secure pages
 		// Don't create a "GPUCache" directory when cache-path is unspecified.
@@ -137,7 +131,15 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
         // process; no command-line switch is added here. The original upstream line
         // was misspelled "no-sanbox" and was a no-op anyway.)
 
-		//http://www.chromium.org/developers/design-documents/process-models
+		// Multi-process is the model on every platform (out-of-process GPU/renderer,
+		// renderer sandbox preserved). macOS needs the full set of helper bundles
+		// embedded for this to work — base "<App> Helper" plus the typed (GPU)/
+		// (Renderer)/(Plugin)/(Alerts) siblings (see macos/.../add_helper_target.rb);
+		// CEF derives the typed child paths from the base helper that
+		// browser_subprocess_path points at, so a missing sibling is what previously
+		// failed the GPU subprocess (gpu_process_host error_code=1003). Honor the
+		// caller's requested process model.
+		// http://www.chromium.org/developers/design-documents/process-models
 		if (m_uMode == 1)
 		{
 			command_line->AppendSwitch("process-per-site");                                     //each site in its own process
@@ -149,10 +151,7 @@ void WebviewApp::OnBeforeCommandLineProcessing(const CefString &process_type, Ce
 		}
 		else if (m_uMode == 3)
 		{
-			// All in one process. On macOS this bypasses the "<App> Helper.app"
-			// subprocess entirely; it's also what startCEF falls back to when no
-			// helper bundle is embedded. Debug-only / unstable for long sessions.
-			command_line->AppendSwitch("single-process");
+			command_line->AppendSwitch("single-process");                                       //all in one process (debug-only / unstable)
 		}
 		command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");     //autoplay policy for media
 

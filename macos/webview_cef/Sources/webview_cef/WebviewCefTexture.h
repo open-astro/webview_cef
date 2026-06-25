@@ -8,15 +8,31 @@
 #ifndef WebviewCefTexture_h
 #define WebviewCefTexture_h
 #import <FlutterMacOS/FlutterMacOS.h>
+#import <IOSurface/IOSurface.h>
 
 @interface WebviewCefTexture : NSObject<FlutterTexture>
 {
     CVPixelBufferRef _pixelBuffer;
     CVPixelBufferRef _pixelBufferTemp;
     dispatch_semaphore_t _lock;
+    // CPU-path (onFrame) buffer pool — recycles CVPixelBuffers instead of
+    // allocating one per frame; recreated only when the frame size changes.
+    CVPixelBufferPoolRef _pool;
+    size_t _poolWidth;
+    size_t _poolHeight;
+    // GPU-path (onIOSurface) only: the CEF IOSurface currently wrapped by
+    // _pixelBuffer, held with IOSurfaceIncrementUseCount so CEF's surface pool
+    // won't recycle (overwrite) it while Flutter is still compositing it. NULL on
+    // the CPU path. Balanced by a matching decrement when _pixelBuffer is replaced
+    // or in dealloc.
+    IOSurfaceRef _heldSurface;
 }
 
 - (void)onFrame:(const void *)buffer width:(int64_t)width height:(int64_t)height;
+
+// GPU shared-texture frame (accelerated OSR): wrap the CEF IOSurface as the
+// texture's CVPixelBuffer with no CPU copy. Dimensions are taken from the surface.
+- (void)onIOSurface:(IOSurfaceRef)surface width:(int64_t)width height:(int64_t)height;
 
 @end
 

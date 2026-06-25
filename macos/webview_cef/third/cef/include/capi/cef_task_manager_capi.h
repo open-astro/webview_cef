@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2026 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -33,12 +33,16 @@
 // by hand. See the translator.README.txt file in the tools directory for
 // more information.
 //
-// $hash=324b0399edef39e64fb54fce053e7f8e347e07de$
+// $hash=e71061db932e828680960a723e74065e9049ef28$
 //
 
 #ifndef CEF_INCLUDE_CAPI_CEF_TASK_MANAGER_CAPI_H_
 #define CEF_INCLUDE_CAPI_CEF_TASK_MANAGER_CAPI_H_
 #pragma once
+
+#if defined(BUILDING_CEF_SHARED)
+#error This file cannot be included DLL-side
+#endif
 
 #include "include/capi/cef_base_capi.h"
 
@@ -49,6 +53,8 @@ extern "C" {
 ///
 /// Structure that facilitates managing the browser-related tasks. The functions
 /// of this structure may only be called on the UI thread.
+///
+/// NOTE: This struct is allocated DLL-side.
 ///
 typedef struct _cef_task_manager_t {
   ///

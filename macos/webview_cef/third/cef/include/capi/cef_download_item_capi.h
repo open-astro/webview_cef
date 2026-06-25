@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2026 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -33,12 +33,16 @@
 // by hand. See the translator.README.txt file in the tools directory for
 // more information.
 //
-// $hash=9af8ade3addfd112db41792c4e80682a8143e8c4$
+// $hash=f4e875144d67f8618c72ee4fd3a1511aafae431a$
 //
 
 #ifndef CEF_INCLUDE_CAPI_CEF_DOWNLOAD_ITEM_CAPI_H_
 #define CEF_INCLUDE_CAPI_CEF_DOWNLOAD_ITEM_CAPI_H_
 #pragma once
+
+#if defined(BUILDING_CEF_SHARED)
+#error This file cannot be included DLL-side
+#endif
 
 #include "include/capi/cef_base_capi.h"
 
@@ -48,6 +52,8 @@ extern "C" {
 
 ///
 /// Structure used to represent a download item.
+///
+/// NOTE: This struct is allocated DLL-side.
 ///
 typedef struct _cef_download_item_t {
   ///
@@ -165,6 +171,13 @@ typedef struct _cef_download_item_t {
   // The resulting string must be freed by calling cef_string_userfree_free().
   cef_string_userfree_t(CEF_CALLBACK* get_mime_type)(
       struct _cef_download_item_t* self);
+
+#if CEF_API_ADDED(14400)
+  ///
+  /// Returns true (1) if the download has been paused.
+  ///
+  int(CEF_CALLBACK* is_paused)(struct _cef_download_item_t* self);
+#endif
 } cef_download_item_t;
 
 #ifdef __cplusplus

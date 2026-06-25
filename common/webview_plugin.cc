@@ -13,6 +13,7 @@
 #endif
 
 #include <math.h>
+#include <atomic>
 #include <memory>
 #include <thread>
 #include <iostream>
@@ -22,7 +23,10 @@ namespace webview_cef {
 	CefMainArgs mainArgs;
 	CefRefPtr<WebviewApp> app;
 	CefString userAgent;
-	bool isCefInitialized = false;
+	// Atomic: read on the macOS NSTimer pump (doMessageLoopWork) and written by
+	// startCEF/stopCEF; std::atomic gives the cross-thread happens-before and
+	// stops the compiler reordering the guard reads.
+	std::atomic<bool> isCefInitialized{false};
 
 	WebviewPlugin::WebviewPlugin() {
 		m_handler = new WebviewHandler();
@@ -40,13 +44,19 @@ namespace webview_cef {
 	void WebviewPlugin::initCallback() {
 		if (!m_init)
 		{
-			m_handler->onPaintCallback = [=](int browserId, const void* buffer, int32_t width, int32_t height) {
+			m_handler->onPaintCallback = [=, this](int browserId, const void* buffer, int32_t width, int32_t height) {
 				if (m_renderers.find(browserId) != m_renderers.end() && m_renderers[browserId] != nullptr) {
 					m_renderers[browserId]->onFrame(buffer, width, height);
 				}
 			};
 
-			m_handler->onTooltipEvent = [=](int browserId, std::string text) {
+			m_handler->onAcceleratedPaintCallback = [=, this](int browserId, void* sharedHandle, int32_t width, int32_t height) {
+				if (m_renderers.find(browserId) != m_renderers.end() && m_renderers[browserId] != nullptr) {
+					m_renderers[browserId]->onAcceleratedFrame(sharedHandle, width, height);
+				}
+			};
+
+			m_handler->onTooltipEvent = [=, this](int browserId, std::string text) {
 				if (m_invokeFunc) {
 					WValue* bId = webview_value_new_int(browserId);
 					WValue* wText = webview_value_new_string(const_cast<char*>(text.c_str()));
@@ -60,7 +70,7 @@ namespace webview_cef {
 				}
 			};
 
-			m_handler->onCursorChangedEvent = [=](int browserId, int type) {
+			m_handler->onCursorChangedEvent = [=, this](int browserId, int type) {
 				if(m_invokeFunc){
 					WValue* bId = webview_value_new_int(browserId);
 					WValue* wType = webview_value_new_int(type);
@@ -74,7 +84,7 @@ namespace webview_cef {
 				}
 			};
 
-			m_handler->onConsoleMessageEvent = [=](int browserId, int level, std::string message, std::string source, int line){
+			m_handler->onConsoleMessageEvent = [=, this](int browserId, int level, std::string message, std::string source, int line){
 				if(m_invokeFunc){
 					WValue* bId = webview_value_new_int(browserId);
 					WValue* wLevel = webview_value_new_int(level);
@@ -97,7 +107,7 @@ namespace webview_cef {
 				}
 			};
 
-			m_handler->onUrlChangedEvent = [=](int browserId, std::string url)
+			m_handler->onUrlChangedEvent = [=, this](int browserId, std::string url)
 			{
 				if (m_invokeFunc)
 				{
@@ -113,7 +123,7 @@ namespace webview_cef {
 				}
 			};
 
-			m_handler->onTitleChangedEvent = [=](int browserId, std::string title)
+			m_handler->onTitleChangedEvent = [=, this](int browserId, std::string title)
 			{
 				if (m_invokeFunc)
 				{
@@ -129,7 +139,7 @@ namespace webview_cef {
 				}
 			};
 
-			m_handler->onJavaScriptChannelMessage = [=](std::string channelName, std::string message, std::string callbackId, int browserId, std::string frameId)
+			m_handler->onJavaScriptChannelMessage = [=, this](std::string channelName, std::string message, std::string callbackId, int browserId, std::string frameId)
 			{
 				if (m_invokeFunc)
 				{
@@ -154,7 +164,7 @@ namespace webview_cef {
 				}
 			};
 
-			m_handler->onFocusedNodeChangeMessage = [=](int nBrowserId, bool bEditable)
+			m_handler->onFocusedNodeChangeMessage = [=, this](int nBrowserId, bool bEditable)
 			{
 				if (m_invokeFunc)
 				{
@@ -170,7 +180,7 @@ namespace webview_cef {
 				}
 			};
 
-			m_handler->onImeCompositionRangeChangedMessage = [=](int nBrowserId, int32_t x, int32_t y)
+			m_handler->onImeCompositionRangeChangedMessage = [=, this](int nBrowserId, int32_t x, int32_t y)
 			{
 				if (m_invokeFunc)
 				{
@@ -190,7 +200,7 @@ namespace webview_cef {
 			};
 
 
-            m_handler->onLoadStart = [=](int nBrowserId, std::string urlId)
+            m_handler->onLoadStart = [=, this](int nBrowserId, std::string urlId)
             {
                 if (m_invokeFunc)
                 {
@@ -206,7 +216,7 @@ namespace webview_cef {
                 }
             };
 
-            m_handler->onLoadEnd = [=](int nBrowserId, std::string urlId)
+            m_handler->onLoadEnd = [=, this](int nBrowserId, std::string urlId)
             {
                 if (m_invokeFunc)
                 {
@@ -236,6 +246,10 @@ namespace webview_cef {
 		m_handler->onJavaScriptChannelMessage = nullptr;
 		m_handler->onFocusedNodeChangeMessage = nullptr;
 		m_handler->onImeCompositionRangeChangedMessage = nullptr;
+		// onLoadStart/onLoadEnd capture m_invokeFunc too; null them here as well so a
+		// late CEF load event after ~WebviewPlugin() can't fire a dangling capture.
+		m_handler->onLoadStart = nullptr;
+		m_handler->onLoadEnd = nullptr;
 		m_init = false;
 	}
 
@@ -258,7 +272,7 @@ namespace webview_cef {
 		}
 		else if (name.compare("create") == 0) {
 			std::string url = webview_value_get_string(values);
-			m_handler->createBrowser(url, [=](int browserId) {
+			m_handler->createBrowser(url, [=, this](int browserId) {
 				std::shared_ptr<WebviewTexture> renderer = m_createTextureFunc();
 				m_renderers[browserId] = renderer;
 				WValue	*response = webview_value_new_list();
@@ -486,7 +500,10 @@ namespace webview_cef {
 			});
 		}
 		else {
-			result = 0;
+			// Unknown method: complete the callback with a 0 (failure) result so the
+			// Dart-side await resolves (to nil) instead of hanging forever. Assigning
+			// `result = 0` would only null the std::function, never invoking it.
+			result(0, nullptr);
 		}
 	}
 
@@ -527,9 +544,9 @@ namespace webview_cef {
 		int browserId = int(webview_value_get_int(webview_value_get_list_value(args, 0)));
 		int x = int(webview_value_get_int(webview_value_get_list_value(args, 1)));
 		int y = int(webview_value_get_int(webview_value_get_list_value(args, 2)));
-		if (!x && !y) {
-			return 0;
-		}
+		// (0,0) is a valid coordinate — the top-left corner. The old `if (!x && !y)`
+		// guard silently dropped genuine clicks/moves there; args are already
+		// length-validated above, so no origin filter is needed.
 		if (name.compare("cursorClickDown") == 0) {
 			m_handler->cursorClick(browserId, x, y, false);
 		}
@@ -630,6 +647,24 @@ namespace webview_cef {
 #ifdef OS_MAC
 		//cef message loop handle by MainApplication on mac
 		cefs.external_message_pump = true;
+		// CEF requires a writable root cache path. Leaving it at the default emits a
+		// "may lead to unintended process singleton behavior" warning on older
+		// Chromium and became a hard CHECK during CefInitialize on Chromium 149
+		// (macOS), so set a per-user cache dir explicitly. CEF creates the leaf dir.
+		// HOME can be unset under launchd / CI / a sandbox; since an empty
+		// root_cache_path trips that same CHECK, fall back to the per-user temp
+		// dir (TMPDIR) or /tmp so CefInitialize always gets a writable path.
+		{
+			std::string cacheRoot;
+			if (const char* home = getenv("HOME"); home && home[0] != '\0') {
+				cacheRoot = std::string(home) + "/Library/Caches/webview_cef";
+			} else {
+				const char* tmp = getenv("TMPDIR");
+				std::string base = (tmp && tmp[0] != '\0') ? std::string(tmp) : std::string("/tmp");
+				cacheRoot = base + "/webview_cef_cache";
+			}
+			CefString(&cefs.root_cache_path) = cacheRoot;
+		}
 		// Run subprocesses (renderer/GPU/...) out-of-process via the helper bundle
 		// the host app embeds at:
 		//   <App>.app/Contents/Frameworks/<App> Helper.app/Contents/MacOS/<App> Helper
@@ -698,10 +733,20 @@ namespace webview_cef {
 		//cef message run in another thread on windows/linux
 		cefs.multi_threaded_message_loop = true;
 #endif
-		CefInitialize(mainArgs, cefs, app.get(), nullptr);
+		// Record success so (1) a second "init" call doesn't re-run CefInitialize
+		// (UB per CEF) and (2) stopCEF()'s isCefInitialized guard lets CefShutdown
+		// actually run on exit. Without this the clean-shutdown path is a no-op.
+		isCefInitialized = CefInitialize(mainArgs, cefs, app.get(), nullptr);
 	}
 
 	void doMessageLoopWork(){
+		// The macOS wrapper pumps this from a repeating NSTimer that is never
+		// invalidated; after stopCEF() runs CefShutdown() on exit the timer can
+		// still fire once or twice. Pumping a shut-down CEF instance is UB, so
+		// no-op once CEF is no longer initialized.
+		if (!isCefInitialized) {
+			return;
+		}
 		CefDoMessageLoopWork();
 	}
 
@@ -723,6 +768,17 @@ namespace webview_cef {
 
     void stopCEF()
     {
+		// Calling CefShutdown() without a matching CefInitialize() — or twice —
+		// trips a CEF DCHECK / crashes (UB). The app drives this from a lifecycle
+		// hook on every exit (AppLifecycleListener.onExitRequested), which can fire
+		// even when the webview was never opened. Atomically claim the shutdown so
+		// only the caller that flips the flag true->false runs CefShutdown(); a
+		// plain check-then-act would let two concurrent callers both pass the guard
+		// and double-invoke it.
+		bool expected = true;
+		if (!isCefInitialized.compare_exchange_strong(expected, false)) {
+			return;
+		}
 		CefShutdown();
     }
 }

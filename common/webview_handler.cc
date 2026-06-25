@@ -7,6 +7,7 @@
 #include <sstream>
 #include <string>
 #include <iostream>
+#include <atomic>
 #include <chrono>
 #include <unordered_map>
 #include <cstdint>
@@ -170,6 +171,7 @@ void WebviewHandler::OnBeforeClose(CefRefPtr<CefBrowser> browser) {
 
 bool WebviewHandler::OnBeforePopup(CefRefPtr<CefBrowser> browser,
                                   CefRefPtr<CefFrame> frame,
+                                  int popup_id,
                                   const CefString& target_url,
                                   const CefString& target_frame_name,
                                   WindowOpenDisposition target_disposition,
@@ -284,6 +286,9 @@ void WebviewHandler::createBrowser(std::string url, std::function<void(int)> cal
     browser_settings.windowless_frame_rate = 30;
     CefWindowInfo window_info;
     window_info.SetAsWindowless(0);
+    // shared_texture_enabled is left OFF in this CPU-OnPaint baseline. (The GPU
+    // shared-texture/OnAcceleratedPaint path stays implemented in the handler for
+    // when we re-enable it for WebGL, but it requires GPU compositing on.)
     callback(CefBrowserHost::CreateBrowserSync(window_info, this, url, browser_settings, nullptr, nullptr)->GetIdentifier());
 }
 
@@ -312,10 +317,26 @@ void WebviewHandler::changeSize(int browserId, float a_dpi, int w, int h)
 {
     auto it = browser_map_.find(browserId);
     if (it != browser_map_.end()) {
-        it->second.dpi = a_dpi;
-        it->second.width = w;
-        it->second.height = h;
-        it->second.browser->GetHost()->WasResized();
+        auto& info = it->second;
+        info.dpi = a_dpi;
+        auto host = info.browser->GetHost();
+        // OSR only delivers a frame when WasResized observes a size *change*; a
+        // same-size WasResized is a no-op, which is why the webview renders black
+        // until a real resize. So: when the size actually changed, ONE WasResized
+        // suffices — CEF sees the delta and paints. When the size is unchanged
+        // (e.g. the startup re-report loop in lib/src/webview.dart, which fires a
+        // few times so a paint lands once the renderer is ready) force a repaint
+        // directly with Invalidate(PET_VIEW). (An earlier approach manufactured a
+        // 1px delta by reporting h-1 then h, but on the multi_threaded_message_loop
+        // platforms CEF's UI thread could observe the transient h-1 via GetViewRect
+        // and deliver a one-pixel-short frame; Invalidate has no such race.)
+        if (static_cast<int>(info.width) == w && static_cast<int>(info.height) == h) {
+            host->Invalidate(PET_VIEW);
+        } else {
+            info.width = w;
+            info.height = h;
+            host->WasResized();
+        }
     }
 }
 
@@ -620,10 +641,12 @@ void WebviewHandler::sendJavaScriptChannelCallBack(const bool error, const std::
 
 static std::string GetCallbackId()
 {
-    auto time = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now());
-	time_t timestamp = time.time_since_epoch().count();
-    return std::to_string(timestamp);
-} 
+    // Monotonic per-process counter, not a wall-clock timestamp: two calls within
+    // the same nanosecond tick (or a clock that steps backwards) would otherwise
+    // collide and route a JS result to the wrong pending callback.
+    static std::atomic<uint64_t> counter{0};
+    return std::to_string(counter.fetch_add(1, std::memory_order_relaxed));
+}
 
 void WebviewHandler::executeJavaScript(int browserId, const std::string code, std::function<void(CefRefPtr<CefValue>)> callback)
 {
@@ -674,7 +697,13 @@ void WebviewHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) {
 
 bool WebviewHandler::GetScreenInfo(CefRefPtr<CefBrowser> browser, CefScreenInfo& screen_info) {
     //todo: hi dpi support
-    screen_info.device_scale_factor  = browser_map_[browser->GetIdentifier()].dpi;
+    // find (not operator[]) so an unknown/destroyed browser id doesn't insert a
+    // zero-dpi browser_info entry into the map — matches the guard the other map
+    // accessors (changeSize / cursorClick / GetViewRect) use.
+    auto it = browser_map_.find(browser->GetIdentifier());
+    if (it != browser_map_.end()) {
+        screen_info.device_scale_factor = it->second.dpi;
+    }
     return false;
 }
 
@@ -683,6 +712,34 @@ void WebviewHandler::OnPaint(CefRefPtr<CefBrowser> browser, CefRenderHandler::Pa
     if (!browser->IsPopup() && onPaintCallback != nullptr) {
         onPaintCallback(browser->GetIdentifier(), buffer, w, h);
     }
+}
+
+// GPU shared-texture frames. When shared_texture_enabled is honored, CEF composites
+// on the GPU and delivers each frame here as a platform shared texture (an IOSurface
+// on macOS) instead of calling OnPaint — which is the only way GPU-only content like
+// Aladin Lite v3's WebGL reaches us. The texture layer wraps the surface zero-copy.
+void WebviewHandler::OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, CefRenderHandler::PaintElementType type,
+                                        const CefRenderHandler::RectList &dirtyRects, const CefAcceleratedPaintInfo &info) {
+#ifdef __APPLE__
+    if (!browser->IsPopup() && onAcceleratedPaintCallback != nullptr &&
+        info.shared_texture_io_surface != nullptr) {
+        auto it = browser_map_.find(browser->GetIdentifier());
+        // Skip if the browser isn't tracked yet or has no real size: forwarding the
+        // surface with w=0,h=0 would make onIOSurface wrap a zero-dimension
+        // CVPixelBuffer (an unusable/black frame).
+        if (it == browser_map_.end() || it->second.width <= 0 || it->second.height <= 0) {
+            return;
+        }
+        onAcceleratedPaintCallback(browser->GetIdentifier(), info.shared_texture_io_surface,
+                                   it->second.width, it->second.height);
+    }
+#else
+    // The GPU shared-texture (accelerated) paint path is wired only for macOS
+    // IOSurface today; CefAcceleratedPaintInfo has no shared_texture_io_surface
+    // member on other platforms, so this is a no-op there (offscreen rendering on
+    // Linux/Windows goes through OnPaint).
+    (void)browser; (void)type; (void)dirtyRects; (void)info;
+#endif
 }
 
 

@@ -11,6 +11,10 @@ namespace webview_cef {
     public:
         virtual ~WebviewTexture(){}
         virtual void onFrame(const void* buffer, int width, int height){}
+        // GPU shared-texture frame (accelerated OSR). |sharedHandle| is a platform
+        // shared-texture handle (an IOSurface on macOS) wrapped zero-copy. Default
+        // no-op so platforms without an accelerated texture path are unaffected.
+        virtual void onAcceleratedFrame(void* sharedHandle, int width, int height){}
         int64_t textureId = 0;
         bool isFocused = false;
     };

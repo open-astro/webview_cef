@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2026 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -33,12 +33,16 @@
 // by hand. See the translator.README.txt file in the tools directory for
 // more information.
 //
-// $hash=66aebf0e910224fb8eaa7f847feeccac73378374$
+// $hash=8e84096c2834bd1c831da7ee3d88a39ca1b4f594$
 //
 
 #ifndef CEF_INCLUDE_CAPI_CEF_PERMISSION_HANDLER_CAPI_H_
 #define CEF_INCLUDE_CAPI_CEF_PERMISSION_HANDLER_CAPI_H_
 #pragma once
+
+#if defined(BUILDING_CEF_SHARED)
+#error This file cannot be included DLL-side
+#endif
 
 #include "include/capi/cef_base_capi.h"
 #include "include/capi/cef_browser_capi.h"
@@ -50,6 +54,8 @@ extern "C" {
 ///
 /// Callback structure used for asynchronous continuation of media access
 /// permission requests.
+///
+/// NOTE: This struct is allocated DLL-side.
 ///
 typedef struct _cef_media_access_callback_t {
   ///
@@ -77,6 +83,8 @@ typedef struct _cef_media_access_callback_t {
 ///
 /// Callback structure used for asynchronous continuation of permission prompts.
 ///
+/// NOTE: This struct is allocated DLL-side.
+///
 typedef struct _cef_permission_prompt_callback_t {
   ///
   /// Base structure.
@@ -94,6 +102,8 @@ typedef struct _cef_permission_prompt_callback_t {
 /// Implement this structure to handle events related to permission requests.
 /// The functions of this structure will be called on the browser process UI
 /// thread.
+///
+/// NOTE: This struct is allocated client-side.
 ///
 typedef struct _cef_permission_handler_t {
   ///
