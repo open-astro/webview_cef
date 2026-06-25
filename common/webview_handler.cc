@@ -327,7 +327,7 @@ void WebviewHandler::changeSize(int browserId, float a_dpi, int w, int h)
         // times so a paint lands once the renderer is ready) do we manufacture a 1px
         // delta — report h-1 then h (the intermediate is never displayed) — to force
         // a paint without needing a manual window resize.
-        if (info.width == w && info.height == h) {
+        if (static_cast<int>(info.width) == w && static_cast<int>(info.height) == h) {
             if (h > 1) {
                 info.height = h - 1;
                 host->WasResized();
