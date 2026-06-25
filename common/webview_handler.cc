@@ -323,18 +323,15 @@ void WebviewHandler::changeSize(int browserId, float a_dpi, int w, int h)
         // OSR only delivers a frame when WasResized observes a size *change*; a
         // same-size WasResized is a no-op, which is why the webview renders black
         // until a real resize. So: when the size actually changed, ONE WasResized
-        // suffices — CEF sees the delta and paints. Only when the size is unchanged
-        // (e.g. the startup re-report loop in lib/src/webview.dart, which fires a few
-        // times so a paint lands once the renderer is ready) do we manufacture a 1px
-        // delta — report h-1 then h (the intermediate is never displayed) — to force
-        // a paint without needing a manual window resize.
+        // suffices — CEF sees the delta and paints. When the size is unchanged
+        // (e.g. the startup re-report loop in lib/src/webview.dart, which fires a
+        // few times so a paint lands once the renderer is ready) force a repaint
+        // directly with Invalidate(PET_VIEW). (An earlier approach manufactured a
+        // 1px delta by reporting h-1 then h, but on the multi_threaded_message_loop
+        // platforms CEF's UI thread could observe the transient h-1 via GetViewRect
+        // and deliver a one-pixel-short frame; Invalidate has no such race.)
         if (static_cast<int>(info.width) == w && static_cast<int>(info.height) == h) {
-            if (h > 1) {
-                info.height = h - 1;
-                host->WasResized();
-                info.height = h;
-                host->WasResized();
-            }
+            host->Invalidate(PET_VIEW);
         } else {
             info.width = w;
             info.height = h;

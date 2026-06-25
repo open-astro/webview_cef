@@ -13,6 +13,7 @@
 #endif
 
 #include <math.h>
+#include <atomic>
 #include <memory>
 #include <thread>
 #include <iostream>
@@ -22,7 +23,10 @@ namespace webview_cef {
 	CefMainArgs mainArgs;
 	CefRefPtr<WebviewApp> app;
 	CefString userAgent;
-	bool isCefInitialized = false;
+	// Atomic: read on the macOS NSTimer pump (doMessageLoopWork) and written by
+	// startCEF/stopCEF; std::atomic gives the cross-thread happens-before and
+	// stops the compiler reordering the guard reads.
+	std::atomic<bool> isCefInitialized{false};
 
 	WebviewPlugin::WebviewPlugin() {
 		m_handler = new WebviewHandler();

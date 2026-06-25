@@ -376,7 +376,7 @@ class WebViewState extends State<WebView> with WebeViewTextInput {
 
     // Report initial surface size.
     WidgetsBinding.instance
-        .addPostFrameCallback((_) => _reportSurfaceSize(context));
+        .addPostFrameCallback((_) => _reportSurfaceSize());
     // Re-report the surface size for the first few seconds after creation.
     // The window/layout often keeps settling AFTER the browser is created (the
     // macOS window open/restore animation grows the view from a small initial
@@ -387,7 +387,7 @@ class WebViewState extends State<WebView> with WebeViewTextInput {
     // Re-reporting catches the final size and kicks the first real frame.
     for (final ms in const [100, 250, 500, 900, 1500, 2500, 4000]) {
       Future.delayed(Duration(milliseconds: ms), () {
-        if (mounted) _reportSurfaceSize(context);
+        if (mounted) _reportSurfaceSize();
       });
     }
   }
@@ -420,7 +420,7 @@ class WebViewState extends State<WebView> with WebeViewTextInput {
   Widget _buildInner() {
     return NotificationListener<SizeChangedLayoutNotification>(
       onNotification: (notification) {
-        _reportSurfaceSize(context);
+        _reportSurfaceSize();
         return true;
       },
       child: SizeChangedLayoutNotifier(
@@ -466,7 +466,10 @@ class WebViewState extends State<WebView> with WebeViewTextInput {
     );
   }
 
-  void _reportSurfaceSize(BuildContext context) async {
+  void _reportSurfaceSize() async {
+    // Read the State's own context (not a captured BuildContext) so the deferred
+    // callers below can't hold a stale reference; bail if we've been unmounted.
+    if (!mounted) return;
     double dpi = MediaQuery.of(context).devicePixelRatio;
     final box = _key.currentContext?.findRenderObject() as RenderBox?;
     if (box != null) {

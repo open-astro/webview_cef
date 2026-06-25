@@ -205,6 +205,12 @@ been run against.
 > the security posture of any other host. If you embed this plugin to load
 > untrusted or third-party origins, fork the command-line setup in
 > `common/webview_app.cc` (`OnBeforeCommandLineProcessing`) to drop them.
+>
+> **Software WebGL (SwiftShader).** Offscreen rendering runs WebGL through
+> software SwiftShader (`--enable-unsafe-swiftshader`) rather than a hardware GPU.
+> Combined with `--disable-web-security`, this means a hostile WebGL shader runs
+> in software with no hardware-GPU sandbox boundary. Acceptable for the trusted
+> bundled-page use case; another reason not to point this at untrusted origins.
 
 > Offscreen (windowless) rendering uses ANGLE's SwiftShader for software WebGL,
 > and disables Chromium 149's Rust `fontations` font backend (it panics on
