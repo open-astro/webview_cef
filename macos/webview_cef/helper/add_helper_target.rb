@@ -1,7 +1,16 @@
 #!/usr/bin/env ruby
-# Injects the CEF subprocess "Helper" target into a Flutter macOS Runner project
-# and wires it to be embedded in the app bundle, so webview_cef can run CEF
-# multi-process (the default/stable mode) instead of single-process.
+# Injects the CEF subprocess "Helper" targets into a Flutter macOS Runner project
+# and wires them to be embedded in the app bundle, so webview_cef runs CEF
+# multi-process — the same model it uses on Linux/Windows — on macOS too.
+#
+# macOS multi-process CEF requires the *full set* of helper bundles, not one:
+# the base "<App> Helper" plus the typed "<App> Helper (GPU)", "(Renderer)",
+# "(Plugin)" and "(Alerts)" siblings, all in Contents/Frameworks. CEF derives the
+# typed child paths from the base helper that browser_subprocess_path points at,
+# so a missing sibling makes CEF fail to launch that child — most visibly the GPU
+# process (gpu_process_host error_code=1003 → "GPU process isn't usable.
+# Goodbye."). This script generates all five (mirroring CEF's own
+# CEF_HELPER_APP_SUFFIXES in cmake/cef_variables.cmake.in).
 #
 # Idempotent: re-running updates the existing target rather than duplicating it.
 # Note: it tears down and recreates the Helper target, so each run regenerates
@@ -14,12 +23,13 @@
 #   ruby add_helper_target.rb <Runner.xcodeproj> <AppName> <plugin_macos_dir>
 #
 #   <Runner.xcodeproj>  e.g. macos/Runner.xcodeproj
-#   <AppName>           the Runner product name, e.g. "openastroara" — the helper
-#                       is named "<AppName> Helper". MUST match the app's
+#   <AppName>           the Runner product name, e.g. "openastroara" — the base
+#                       helper is named "<AppName> Helper" (typed siblings get a
+#                       " (GPU)"/"(Renderer)"/… suffix). MUST match the app's
 #                       CFBundleExecutable (= PRODUCT_NAME for a stock Flutter
-#                       app); the plugin derives the helper path from
+#                       app); the plugin derives the base helper path from
 #                       CFBundleExecutable at runtime, so a mismatch makes the
-#                       helper unfindable and forces single-process mode.
+#                       helpers unfindable and CEF subprocess launch fails.
 #   <plugin_macos_dir>  path (relative to the Runner.xcodeproj's parent dir) to
 #                       the plugin's macos/webview_cef dir, e.g.
 #                       ../packages/webview_cef/macos/webview_cef
@@ -37,8 +47,7 @@ end
 proj_path, app_name, plugin_macos = ARGV
 abort 'usage: add_helper_target.rb <Runner.xcodeproj> <AppName> <plugin_macos_dir>' unless proj_path && app_name && plugin_macos
 
-helper_name   = "#{app_name} Helper"
-helper_target = 'Helper'
+helper_name   = "#{app_name} Helper" # base helper (typed siblings add a suffix)
 project       = Xcodeproj::Project.open(proj_path)
 macos_dir     = File.dirname(proj_path) # the "macos" dir next to Runner.xcodeproj
 
@@ -78,7 +87,6 @@ if runner_bundle_id.nil? || runner_bundle_id.empty?
         "project file + Runner/*.xcconfig). Set PRODUCT_BUNDLE_IDENTIFIER to a real " \
         "id (e.g. in Runner/Configs/AppInfo.xcconfig) before re-running."
 end
-helper_bundle_id = "#{runner_bundle_id}.helper"
 
 cef_dir       = "#{plugin_macos}/third/cef"                       # contains include/ + libcef_dll_wrapper.a
 helper_src     = "#{plugin_macos}/helper/process_helper_main.cc"
@@ -94,8 +102,23 @@ helper_ents    = "#{plugin_macos}/helper/helper.entitlements"
     unless File.exist?(File.join(macos_dir, rel))
 end
 
-# --- Helper target (drop existing first for idempotency) -----------------------
-if (old = project.targets.find { |t| t.name == helper_target })
+# The five CEF macOS helper variants. Mirrors CEF's own CEF_HELPER_APP_SUFFIXES
+# (cmake/cef_variables.cmake.in); each row is
+# [<app-name suffix>, <Xcode target suffix>, <bundle-id suffix>]. The base ("")
+# is what browser_subprocess_path points at; CEF derives the typed siblings'
+# paths from it, so all five must be built and embedded.
+HELPER_VARIANTS = [
+  ['',            '',          ''],
+  [' (Alerts)',   '_alerts',   '.alerts'],
+  [' (GPU)',      '_gpu',      '.gpu'],
+  [' (Plugin)',   '_plugin',   '.plugin'],
+  [' (Renderer)', '_renderer', '.renderer'],
+].freeze
+
+# --- Helper targets (drop ALL existing first for idempotency) ------------------
+# Match the base "Helper" and any typed "Helper_<variant>", so a re-run after the
+# single→multi upgrade also cleans up the old lone "Helper" target.
+project.targets.select { |t| t.name =~ /\AHelper(_[a-z]+)?\z/ }.each do |old|
   # Remove the Runner's dependency on the old helper target (and its container
   # proxy) BEFORE deleting the target. Otherwise a dangling PBXTargetDependency
   # (its .target now nil) is left behind and the later add_dependency call crashes
@@ -118,89 +141,94 @@ if (old = project.targets.find { |t| t.name == helper_target })
   end
   old.remove_from_project
 end
-helper = project.new_target(:application, helper_target, :osx, '10.15')
 
-helper.build_configurations.each do |c|
-  s = c.build_settings
-  s['PRODUCT_NAME']                 = helper_name
-  s['PRODUCT_BUNDLE_IDENTIFIER']    = helper_bundle_id
-  s['INFOPLIST_FILE']               = helper_plist
-  s['CODE_SIGN_ENTITLEMENTS']       = helper_ents
-  s['MACOSX_DEPLOYMENT_TARGET']     = '10.15'
-  s['CLANG_CXX_LANGUAGE_STANDARD']  = 'c++20'
-  s['HEADER_SEARCH_PATHS']          = ['$(inherited)', cef_dir]
-  s['LIBRARY_SEARCH_PATHS']         = ['$(inherited)', cef_dir]
-  # The CEF framework is embedded in the OUTER app's Contents/Frameworks dir.
-  # From the helper executable (<App> Helper.app/Contents/MacOS/<App> Helper):
-  #   ..       -> Contents/        (of <App> Helper.app)
-  #   ../..    -> <App> Helper.app/
-  #   ../../.. -> <App>.app/Contents/Frameworks/   (where the CEF framework lives)
-  # (CefScopedLibraryLoader::LoadInHelper dlopens via a computed path, so this
-  # rpath is a belt-and-suspenders fallback.)
-  s['LD_RUNPATH_SEARCH_PATHS']      = ['$(inherited)', '@executable_path/../../..']
-  s['OTHER_LDFLAGS']                = ['$(inherited)', '-lcef_dll_wrapper', '-framework', 'AppKit']
-  s['SKIP_INSTALL']                 = 'YES'
-  s['CODE_SIGN_STYLE']              = 'Automatic'
-  s['ENABLE_HARDENED_RUNTIME']      = 'YES'
-  # xcodeproj's new_target seeds CLANG_ENABLE_OBJC_WEAK = NO; the helper is pure
-  # C++ so it's irrelevant — drop it so it doesn't confuse readers and inherits
-  # the project/Xcode default.
-  s.delete('CLANG_ENABLE_OBJC_WEAK')
-end
+# The helper source goes in a dedicated "CEF Helper" group (not the project root)
+# so it doesn't clutter every consumer's navigator. One shared file reference is
+# added to each helper target's compile phase. Drop any stale reference first so
+# re-runs don't accumulate orphaned process_helper_main.cc entries.
+project.files.select { |f| f.path == helper_src }.each(&:remove_from_project)
+helper_group = project.main_group.groups.find { |g| g.display_name == 'CEF Helper' } ||
+               project.main_group.new_group('CEF Helper')
+src_ref = helper_group.new_file(helper_src)
 
-# new_target names the product reference "Helper.app" (after the target name),
-# but PRODUCT_NAME builds "<App> Helper.app". Align the product reference so the
-# pbxproj is self-consistent (the embed phase resolves the product by target, so
-# the build works either way, but this avoids a confusing Helper.app vs
-# "<App> Helper.app" mismatch in the project).
-helper.product_reference.path = "#{helper_name}.app"
-
-# Order the helper's build configurations Debug, Profile, Release to match the
+# Order each helper's build configurations Debug, Profile, Release to match the
 # canonical Flutter Runner layout (new_target emits them in a different order).
 config_order = { 'Debug' => 0, 'Profile' => 1, 'Release' => 2 }
-helper.build_configuration_list.build_configurations.sort_by! { |c| config_order.fetch(c.name, 99) }
 
-# xcodeproj's new_target auto-links Cocoa.framework via an SDK-pinned path
-# (DEVELOPER_DIR/Platforms/.../MacOSX<ver>.sdk/...), which hardcodes the build
-# machine's SDK version and makes the project fail to build on any other SDK. The
-# helper links AppKit through OTHER_LDFLAGS instead, so strip the auto-added
-# framework: empty the helper's Frameworks phase and drop every SDK-pinned
-# Cocoa.framework file reference (and any build file still pointing at it).
-helper.frameworks_build_phase.files.dup.each(&:remove_from_project)
+helpers = HELPER_VARIANTS.map do |name_suffix, target_suffix, id_suffix|
+  product_name = "#{helper_name}#{name_suffix}"          # e.g. "openastroara Helper (GPU)"
+  helper = project.new_target(:application, "Helper#{target_suffix}", :osx, '10.15')
+
+  helper.build_configurations.each do |c|
+    s = c.build_settings
+    s['PRODUCT_NAME']                 = product_name
+    s['PRODUCT_BUNDLE_IDENTIFIER']    = "#{runner_bundle_id}.helper#{id_suffix}"
+    s['INFOPLIST_FILE']               = helper_plist
+    s['CODE_SIGN_ENTITLEMENTS']       = helper_ents
+    s['MACOSX_DEPLOYMENT_TARGET']     = '10.15'
+    s['CLANG_CXX_LANGUAGE_STANDARD']  = 'c++20'
+    s['HEADER_SEARCH_PATHS']          = ['$(inherited)', cef_dir]
+    s['LIBRARY_SEARCH_PATHS']         = ['$(inherited)', cef_dir]
+    # The CEF framework is embedded in the OUTER app's Contents/Frameworks dir.
+    # Every helper bundle sits at <App>.app/Contents/Frameworks/<helper>.app, so
+    # from each helper executable (<helper>.app/Contents/MacOS/<helper>):
+    #   ..       -> Contents/        (of <helper>.app)
+    #   ../..    -> <helper>.app/
+    #   ../../.. -> <App>.app/Contents/Frameworks/   (where the CEF framework lives)
+    # (CefScopedLibraryLoader::LoadInHelper dlopens via a computed path, so this
+    # rpath is a belt-and-suspenders fallback — identical for all variants.)
+    s['LD_RUNPATH_SEARCH_PATHS']      = ['$(inherited)', '@executable_path/../../..']
+    s['OTHER_LDFLAGS']                = ['$(inherited)', '-lcef_dll_wrapper', '-framework', 'AppKit']
+    s['SKIP_INSTALL']                 = 'YES'
+    s['CODE_SIGN_STYLE']              = 'Automatic'
+    s['ENABLE_HARDENED_RUNTIME']      = 'YES'
+    # xcodeproj's new_target seeds CLANG_ENABLE_OBJC_WEAK = NO; the helper is pure
+    # C++ so it's irrelevant — drop it so it doesn't confuse readers and inherits
+    # the project/Xcode default.
+    s.delete('CLANG_ENABLE_OBJC_WEAK')
+  end
+
+  # new_target names the product reference after the target ("Helper_gpu.app"),
+  # but PRODUCT_NAME builds "<App> Helper (GPU).app". Align the product reference
+  # so the pbxproj is self-consistent and the embedded bundle name matches what
+  # CEF derives from the base helper path.
+  helper.product_reference.path = "#{product_name}.app"
+  helper.build_configuration_list.build_configurations.sort_by! { |c| config_order.fetch(c.name, 99) }
+
+  # xcodeproj's new_target auto-links Cocoa.framework via an SDK-pinned path that
+  # hardcodes the build machine's SDK version; the helper links AppKit through
+  # OTHER_LDFLAGS instead, so empty each helper's Frameworks phase (the orphaned
+  # SDK-pinned file refs are swept globally once, after the loop).
+  helper.frameworks_build_phase.files.dup.each(&:remove_from_project)
+  helper.source_build_phase.add_file_reference(src_ref)
+  helper
+end
+
+# Drop every SDK-pinned Cocoa.framework file reference the five new_target calls
+# left behind (and any build file still pointing at one) so the project builds on
+# any SDK version, plus the empty "OS X" groups new_target creates.
 project.objects.select { |o|
   o.isa == 'PBXFileReference' && o.path.to_s =~ %r{/MacOSX[\d.]*\.sdk/.*/Cocoa\.framework\z}
 }.each do |ref|
   project.objects.select { |o| o.isa == 'PBXBuildFile' && o.file_ref == ref }.each(&:remove_from_project)
   ref.remove_from_project
 end
-# new_target also leaves an empty "OS X" group (it had held Cocoa.framework);
-# drop it once empty so it doesn't litter the navigator. Search all groups, not
-# just top-level ones, since the gem nests it.
 project.objects.select { |o|
   o.isa == 'PBXGroup' && o.display_name == 'OS X' && o.children.empty?
 }.each(&:remove_from_project)
 
-# Place the helper source in a dedicated "CEF Helper" group rather than the
-# project root, so it doesn't clutter the navigator of every consumer. Drop any
-# stale reference (anywhere in the project) first so re-runs don't accumulate
-# orphaned process_helper_main.cc entries.
-project.files.select { |f| f.path == helper_src }.each(&:remove_from_project)
-helper_group = project.main_group.groups.find { |g| g.display_name == 'CEF Helper' } ||
-               project.main_group.new_group('CEF Helper')
-src_ref = helper_group.new_file(helper_src)
-helper.source_build_phase.add_file_reference(src_ref)
+# --- Runner: embed every helper + JIT entitlements + dependencies --------------
+helpers.each { |h| runner.add_dependency(h) }
 
-# --- Runner: embed the helper + JIT entitlements + dependency ------------------
-runner.add_dependency(helper)
-
-# Copy the built Helper.app into Runner.app/Contents/Frameworks, signed.
+# Copy all five built helper bundles into Runner.app/Contents/Frameworks, signed.
 embed = runner.build_phases.find { |p| p.respond_to?(:symbol_dst_subfolder_spec) && p.display_name == 'Embed CEF Helper' }
 embed ||= runner.new_copy_files_build_phase('Embed CEF Helper')
 embed.symbol_dst_subfolder_spec = :frameworks
 embed.files.dup.each { |bf| embed.remove_build_file(bf) }
-helper_product = helper.product_reference
-bf = embed.add_file_reference(helper_product)
-bf.settings = { 'ATTRIBUTES' => ['CodeSignOnCopy', 'RemoveHeadersOnCopy'] }
+helpers.each do |h|
+  bf = embed.add_file_reference(h.product_reference)
+  bf.settings = { 'ATTRIBUTES' => ['CodeSignOnCopy', 'RemoveHeadersOnCopy'] }
+end
 
 # The host app needs JIT + framework-loading entitlements (V8 JIT, and
 # disable-library-validation so the separately-signed CEF framework can be
@@ -300,7 +328,8 @@ runner.build_configurations.each do |c|
 end
 
 project.save
-puts "Wired '#{helper_name}' helper target + embed phase into #{proj_path}"
+puts "Wired #{helpers.size} '#{helper_name}' helper targets (base + GPU/Renderer/Plugin/Alerts) " \
+     "+ embed phase into #{proj_path}"
 puts "  note: this grants com.apple.security.cs.disable-library-validation to the " \
      "HOST app (needed to load the separately-signed CEF framework). It relaxes " \
      "dylib-injection protection for the whole host process and is incompatible " \

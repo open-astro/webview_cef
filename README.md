@@ -85,7 +85,7 @@ Then fetch the CEF binaries by running the setup script <b>inside the cloned rep
 ./macos/setup_cef.sh        # host arch (arm64 or x86_64)
 ```
 
-It downloads CEF 130.1.2 (the same Chromium the Linux build uses), builds
+It downloads CEF 149 (the same Chromium the Linux/Windows builds use), builds
 `libcef_dll_wrapper.a`, lays the framework out as a versioned bundle, and wraps
 both as `.xcframework`s for Swift Package Manager. The binaries are git-ignored;
 re-run the script after cloning or when the CEF version changes. Then run the
@@ -98,23 +98,42 @@ example app.
 
 #### CEF version per platform
 
+All three platforms are pinned to the same CEF build (chromium-149.0.7827.156),
+from the official Spotify CDN:
+
 | Platform | CEF / Chromium | Source |
 |---|---|---|
-| macOS | **130.1.2** (chromium-130) | `macos/setup_cef.sh` (Spotify CDN) |
-| Linux | **130.1.2** (chromium-130) | `third/download.cmake` (Spotify CDN) |
-| Windows | 101.0.18 (chromium-101) | `third/download.cmake` (legacy prebuilt) — **migration to 130 pending** (needs `windows/CMakeLists.txt` rewritten to build the wrapper from the raw Spotify dist, as Linux does, and a Windows build to verify) |
+| macOS | **149.0.4** (chromium-149) | `macos/setup_cef.sh` (Spotify CDN) |
+| Linux | **149.0.4** (chromium-149) | `third/download.cmake` (Spotify CDN) |
+| Windows | **149.0.4** (chromium-149) | `third/download.cmake` (Spotify CDN) |
 
-#### Multi-process (macOS helper bundle)
+#### Multi-process (macOS helper bundles)
 
-macOS now runs CEF **multi-process** (the stable, default Chromium model): the
-renderer runs in a separate `<App> Helper.app` subprocess instead of being
-forced into the browser process. Single-process mode was a debug convenience
-and is unstable for long-running WebGL/font workloads (the renderer eventually
-hits a CHECK/abort).
+macOS runs CEF **multi-process** — the same model as Linux/Windows (out-of-process
+GPU/renderer, renderer sandbox preserved). The standard Chromium-on-macOS layout
+requires the **full set** of helper bundles in `<App>.app/Contents/Frameworks/`,
+not just one:
 
-To wire the helper subprocess into your own host app, run the injection script
-against your Flutter `Runner.xcodeproj` once. It needs the [`xcodeproj`](https://rubygems.org/gems/xcodeproj)
-gem (`gem install xcodeproj`):
+```
+<App>.app/Contents/Frameworks/
+    Chromium Embedded Framework.framework/
+    <App> Helper.app/
+    <App> Helper (GPU).app/
+    <App> Helper (Renderer).app/
+    <App> Helper (Plugin).app/
+    <App> Helper (Alerts).app/
+```
+
+`browser_subprocess_path` points at the base `<App> Helper`; CEF *derives* the
+typed `(GPU)`/`(Renderer)`/`(Plugin)`/`(Alerts)` child paths from it, so **every
+sibling must exist**. A missing sibling is what makes a child process fail to
+launch — most visibly the GPU process aborting with `gpu_process_host`
+`error_code=1003` (*"GPU process isn't usable. Goodbye."*). The injection script
+below generates all five (mirroring CEF's own `CEF_HELPER_APP_SUFFIXES` in
+`cmake/cef_variables.cmake.in`), so it keeps working as CEF advances.
+
+Run the script against your Flutter `Runner.xcodeproj` once. It needs the
+[`xcodeproj`](https://rubygems.org/gems/xcodeproj) gem (`gem install xcodeproj`):
 
 ```sh
 gem install xcodeproj   # one-time, if not already installed
@@ -124,33 +143,35 @@ ruby packages/webview_cef/macos/webview_cef/helper/add_helper_target.rb \
 
 - `<AppName>` must be the Runner's product name **and** match its
   `CFBundleExecutable` (for a stock Flutter app these are the same — `PRODUCT_NAME`
-  in `Runner/Configs/AppInfo.xcconfig`). The plugin derives the helper path at
-  runtime from `CFBundleExecutable`, so if `<AppName>` differs the helper won't be
-  found and the webview falls back to single-process mode. The helper is named
-  `<AppName> Helper`.
+  in `Runner/Configs/AppInfo.xcconfig`). The plugin derives the base helper path at
+  runtime from `CFBundleExecutable`, so if `<AppName>` differs the helpers won't be
+  found and CEF subprocess launch fails. The base helper is named `<AppName>
+  Helper`; the typed siblings add a ` (GPU)` / `(Renderer)` / … suffix.
 - The last argument is the path (relative to the `macos/` dir) to the plugin's
   `macos/webview_cef` directory.
 
-The script is idempotent — re-running updates the existing target (no duplicated
-or orphaned objects). It does regenerate the helper target's UUIDs each run,
+The script is idempotent — re-running drops and recreates the helper targets (no
+duplicated or orphaned objects). It does regenerate the targets' UUIDs each run,
 though, so **run it once and commit the result**; don't re-run it in a CI
 `git diff --exit-code` check (the diff won't be byte-stable). It:
 
-- adds a `Helper` application target (`<AppName> Helper`) that links
-  `libcef_dll_wrapper` + AppKit and `dlopen`s the embedded CEF framework at
-  runtime via `CefScopedLibraryLoader::LoadInHelper`;
-- adds an **Embed CEF Helper** copy-files phase so the helper is bundled into
+- adds **five** `Helper` application targets (`Helper`, `Helper_gpu`,
+  `Helper_renderer`, `Helper_plugin`, `Helper_alerts`), each building `<AppName>
+  Helper[ (Variant)].app` with a distinct `…​.helper[.variant]` bundle id. They
+  share one `process_helper_main.cc` (links `libcef_dll_wrapper` + AppKit and
+  `dlopen`s the embedded CEF framework via `CefScopedLibraryLoader::LoadInHelper`);
+- adds an **Embed CEF Helper** copy-files phase so all five are bundled into
   `Runner.app/Contents/Frameworks` and code-signed on copy;
 - merges the JIT entitlements V8/CEF require (`allow-jit`,
   `allow-unsigned-executable-memory`, `disable-library-validation`) into the
-  helper and into the host app's existing entitlements plist(s) — it edits the
+  helpers and into the host app's existing entitlements plist(s) — it edits the
   `Runner/{DebugProfile,Release}.entitlements` your project already references,
   not just the build setting.
 
-The plugin discovers the helper automatically (`browser_subprocess_path` is
-derived from the running app bundle), so no further code changes are needed. See
-`example/macos/Runner.xcodeproj` for a project the script has already been run
-against.
+The plugin discovers the helpers automatically (`browser_subprocess_path` is the
+base helper, derived from the running app bundle), so no further code changes are
+needed. See `example/macos/Runner.xcodeproj` for a project the script has already
+been run against.
 
 > **Distribution note:** `disable-library-validation` (needed so the host
 > process can `dlopen` the separately-signed CEF framework) together with
@@ -173,11 +194,10 @@ against.
 > distribution. The script warns when it merges into sandboxed entitlements.
 
 > **Renderer security posture:** the plugin runs CEF with `no_sandbox` and (for
-> loaded pages) `--disable-web-security` + `--allow-running-insecure-content`.
-> These were already in effect in single-process mode; in multi-process mode they
-> apply to each renderer subprocess. The webview therefore loads pages without the
-> OS sandbox or the same-origin policy — only load content you trust, and don't
-> point it at arbitrary remote origins.
+> loaded pages) `--disable-web-security` + `--allow-running-insecure-content`,
+> which apply to each renderer subprocess. The webview therefore loads pages
+> without the OS sandbox or the same-origin policy — only load content you trust,
+> and don't point it at arbitrary remote origins.
 >
 > **These flags are applied unconditionally to every embedder — there is
 > currently no opt-out API.** They suit this fork's intended use (a fixed, bundled
@@ -186,9 +206,9 @@ against.
 > untrusted or third-party origins, fork the command-line setup in
 > `common/webview_app.cc` (`OnBeforeCommandLineProcessing`) to drop them.
 
-> Offscreen (windowless) rendering uses ANGLE's SwiftShader for WebGL with an
-> in-process GPU, and disables Chromium 130's Rust `fontations` font backend
-> (it panics on certain glyphs); both are handled inside the plugin.
+> Offscreen (windowless) rendering uses ANGLE's SwiftShader for software WebGL,
+> and disables Chromium 149's Rust `fontations` font backend (it panics on
+> certain glyphs); both are handled inside the plugin.
 
 ### Linux <img src="https://1000logos.net/wp-content/uploads/2017/03/LINUX-LOGO.png" width="16">
 
