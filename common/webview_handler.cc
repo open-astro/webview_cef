@@ -710,6 +710,7 @@ void WebviewHandler::OnPaint(CefRefPtr<CefBrowser> browser, CefRenderHandler::Pa
 // Aladin Lite v3's WebGL reaches us. The texture layer wraps the surface zero-copy.
 void WebviewHandler::OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, CefRenderHandler::PaintElementType type,
                                         const CefRenderHandler::RectList &dirtyRects, const CefAcceleratedPaintInfo &info) {
+#ifdef __APPLE__
     if (!browser->IsPopup() && onAcceleratedPaintCallback != nullptr &&
         info.shared_texture_io_surface != nullptr) {
         auto it = browser_map_.find(browser->GetIdentifier());
@@ -722,6 +723,13 @@ void WebviewHandler::OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, CefRender
         onAcceleratedPaintCallback(browser->GetIdentifier(), info.shared_texture_io_surface,
                                    it->second.width, it->second.height);
     }
+#else
+    // The GPU shared-texture (accelerated) paint path is wired only for macOS
+    // IOSurface today; CefAcceleratedPaintInfo has no shared_texture_io_surface
+    // member on other platforms, so this is a no-op there (offscreen rendering on
+    // Linux/Windows goes through OnPaint).
+    (void)browser; (void)type; (void)dirtyRects; (void)info;
+#endif
 }
 
 

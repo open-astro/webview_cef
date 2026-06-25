@@ -40,19 +40,19 @@ namespace webview_cef {
 	void WebviewPlugin::initCallback() {
 		if (!m_init)
 		{
-			m_handler->onPaintCallback = [=](int browserId, const void* buffer, int32_t width, int32_t height) {
+			m_handler->onPaintCallback = [=, this](int browserId, const void* buffer, int32_t width, int32_t height) {
 				if (m_renderers.find(browserId) != m_renderers.end() && m_renderers[browserId] != nullptr) {
 					m_renderers[browserId]->onFrame(buffer, width, height);
 				}
 			};
 
-			m_handler->onAcceleratedPaintCallback = [=](int browserId, void* sharedHandle, int32_t width, int32_t height) {
+			m_handler->onAcceleratedPaintCallback = [=, this](int browserId, void* sharedHandle, int32_t width, int32_t height) {
 				if (m_renderers.find(browserId) != m_renderers.end() && m_renderers[browserId] != nullptr) {
 					m_renderers[browserId]->onAcceleratedFrame(sharedHandle, width, height);
 				}
 			};
 
-			m_handler->onTooltipEvent = [=](int browserId, std::string text) {
+			m_handler->onTooltipEvent = [=, this](int browserId, std::string text) {
 				if (m_invokeFunc) {
 					WValue* bId = webview_value_new_int(browserId);
 					WValue* wText = webview_value_new_string(const_cast<char*>(text.c_str()));
@@ -66,7 +66,7 @@ namespace webview_cef {
 				}
 			};
 
-			m_handler->onCursorChangedEvent = [=](int browserId, int type) {
+			m_handler->onCursorChangedEvent = [=, this](int browserId, int type) {
 				if(m_invokeFunc){
 					WValue* bId = webview_value_new_int(browserId);
 					WValue* wType = webview_value_new_int(type);
@@ -80,7 +80,7 @@ namespace webview_cef {
 				}
 			};
 
-			m_handler->onConsoleMessageEvent = [=](int browserId, int level, std::string message, std::string source, int line){
+			m_handler->onConsoleMessageEvent = [=, this](int browserId, int level, std::string message, std::string source, int line){
 				if(m_invokeFunc){
 					WValue* bId = webview_value_new_int(browserId);
 					WValue* wLevel = webview_value_new_int(level);
@@ -103,7 +103,7 @@ namespace webview_cef {
 				}
 			};
 
-			m_handler->onUrlChangedEvent = [=](int browserId, std::string url)
+			m_handler->onUrlChangedEvent = [=, this](int browserId, std::string url)
 			{
 				if (m_invokeFunc)
 				{
@@ -119,7 +119,7 @@ namespace webview_cef {
 				}
 			};
 
-			m_handler->onTitleChangedEvent = [=](int browserId, std::string title)
+			m_handler->onTitleChangedEvent = [=, this](int browserId, std::string title)
 			{
 				if (m_invokeFunc)
 				{
@@ -135,7 +135,7 @@ namespace webview_cef {
 				}
 			};
 
-			m_handler->onJavaScriptChannelMessage = [=](std::string channelName, std::string message, std::string callbackId, int browserId, std::string frameId)
+			m_handler->onJavaScriptChannelMessage = [=, this](std::string channelName, std::string message, std::string callbackId, int browserId, std::string frameId)
 			{
 				if (m_invokeFunc)
 				{
@@ -160,7 +160,7 @@ namespace webview_cef {
 				}
 			};
 
-			m_handler->onFocusedNodeChangeMessage = [=](int nBrowserId, bool bEditable)
+			m_handler->onFocusedNodeChangeMessage = [=, this](int nBrowserId, bool bEditable)
 			{
 				if (m_invokeFunc)
 				{
@@ -176,7 +176,7 @@ namespace webview_cef {
 				}
 			};
 
-			m_handler->onImeCompositionRangeChangedMessage = [=](int nBrowserId, int32_t x, int32_t y)
+			m_handler->onImeCompositionRangeChangedMessage = [=, this](int nBrowserId, int32_t x, int32_t y)
 			{
 				if (m_invokeFunc)
 				{
@@ -196,7 +196,7 @@ namespace webview_cef {
 			};
 
 
-            m_handler->onLoadStart = [=](int nBrowserId, std::string urlId)
+            m_handler->onLoadStart = [=, this](int nBrowserId, std::string urlId)
             {
                 if (m_invokeFunc)
                 {
@@ -212,7 +212,7 @@ namespace webview_cef {
                 }
             };
 
-            m_handler->onLoadEnd = [=](int nBrowserId, std::string urlId)
+            m_handler->onLoadEnd = [=, this](int nBrowserId, std::string urlId)
             {
                 if (m_invokeFunc)
                 {
@@ -264,7 +264,7 @@ namespace webview_cef {
 		}
 		else if (name.compare("create") == 0) {
 			std::string url = webview_value_get_string(values);
-			m_handler->createBrowser(url, [=](int browserId) {
+			m_handler->createBrowser(url, [=, this](int browserId) {
 				std::shared_ptr<WebviewTexture> renderer = m_createTextureFunc();
 				m_renderers[browserId] = renderer;
 				WValue	*response = webview_value_new_list();
@@ -367,7 +367,7 @@ namespace webview_cef {
 			result(1, nullptr);
 		}
 		else if (name.compare("visitAllCookies") == 0) {
-			m_handler->visitAllCookies([=](std::map<std::string, std::map<std::string, std::string>> cookies){
+			m_handler->visitAllCookies([=, this](std::map<std::string, std::map<std::string, std::string>> cookies){
 				WValue* retMap = webview_value_new_map();
 				for (auto &cookie : cookies)
 				{
@@ -388,7 +388,7 @@ namespace webview_cef {
 		else if (name.compare("visitUrlCookies") == 0) {
 			const auto domain = webview_value_get_string(webview_value_get_list_value(values, 0));
 			const auto isHttpOnly = webview_value_get_bool(webview_value_get_list_value(values, 1));
-			m_handler->visitUrlCookies(domain, isHttpOnly,[=](std::map<std::string, std::map<std::string, std::string>> cookies){
+			m_handler->visitUrlCookies(domain, isHttpOnly,[=, this](std::map<std::string, std::map<std::string, std::string>> cookies){
 				WValue* retMap = webview_value_new_map();
 				for (auto &cookie : cookies)
 				{
@@ -436,7 +436,7 @@ namespace webview_cef {
 		else if(name.compare("evaluateJavascript") == 0){
 			int browserId = int(webview_value_get_int(webview_value_get_list_value(values, 0)));
 			const auto code = webview_value_get_string(webview_value_get_list_value(values, 1));
-			m_handler->executeJavaScript(browserId, code, [=](CefRefPtr<CefValue> values){
+			m_handler->executeJavaScript(browserId, code, [=, this](CefRefPtr<CefValue> values){
                 WValue* retValue;
 
                 if (values == nullptr) {
