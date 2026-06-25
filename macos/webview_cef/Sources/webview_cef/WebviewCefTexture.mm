@@ -20,19 +20,39 @@ typedef void(^RetainSelfBlock)(void);
     return self;
 }
 
+- (void)dealloc {
+    if (_pool) { CVPixelBufferPoolRelease(_pool); _pool = NULL; }
+    if (_pixelBuffer) { CVPixelBufferRelease(_pixelBuffer); _pixelBuffer = NULL; }
+}
+
 - (void)onFrame:(const void *)buffer width:(int64_t)width height:(int64_t)height{
-    NSDictionary* dic = @{
-        (__bridge NSString*)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_32BGRA),
-        (__bridge NSString*)kCVPixelBufferIOSurfacePropertiesKey : @{},
-        (__bridge NSString*)kCVPixelBufferOpenGLCompatibilityKey : @YES,
-        (__bridge NSString*)kCVPixelBufferMetalCompatibilityKey : @YES,
-    };
-            
-    static CVPixelBufferRef buf = NULL;
-    CVPixelBufferCreate(kCFAllocatorDefault,  width,
-                                height, kCVPixelFormatType_32BGRA,
-                                (__bridge CFDictionaryRef)dic, &buf);
-            
+    // Reuse buffers from a CVPixelBufferPool instead of allocating a fresh
+    // CVPixelBuffer every frame (this is called per OnPaint, up to 30fps). The pool
+    // recycles a buffer once Flutter releases its retained copy, so steady-state
+    // frames do no heap allocation. The pool is (re)created only when the frame
+    // dimensions change.
+    if (_pool == NULL || _poolWidth != (size_t)width || _poolHeight != (size_t)height) {
+        if (_pool) { CVPixelBufferPoolRelease(_pool); _pool = NULL; }
+        NSDictionary* pbAttrs = @{
+            (__bridge NSString*)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_32BGRA),
+            (__bridge NSString*)kCVPixelBufferWidthKey: @(width),
+            (__bridge NSString*)kCVPixelBufferHeightKey: @(height),
+            (__bridge NSString*)kCVPixelBufferIOSurfacePropertiesKey : @{},
+            (__bridge NSString*)kCVPixelBufferOpenGLCompatibilityKey : @YES,
+            (__bridge NSString*)kCVPixelBufferMetalCompatibilityKey : @YES,
+        };
+        CVPixelBufferPoolCreate(kCFAllocatorDefault, NULL,
+                                (__bridge CFDictionaryRef)pbAttrs, &_pool);
+        _poolWidth = (size_t)width;
+        _poolHeight = (size_t)height;
+    }
+
+    CVPixelBufferRef buf = NULL;
+    if (_pool) {
+        CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, _pool, &buf);
+    }
+    if (buf == NULL) { return; } // pool creation failed — drop this frame rather than crash
+
     //copy data
     CVPixelBufferLockBaseAddress(buf, 0);
     char *copyBaseAddress = (char *) CVPixelBufferGetBaseAddress(buf);

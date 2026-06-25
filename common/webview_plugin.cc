@@ -533,9 +533,9 @@ namespace webview_cef {
 		int browserId = int(webview_value_get_int(webview_value_get_list_value(args, 0)));
 		int x = int(webview_value_get_int(webview_value_get_list_value(args, 1)));
 		int y = int(webview_value_get_int(webview_value_get_list_value(args, 2)));
-		if (!x && !y) {
-			return 0;
-		}
+		// (0,0) is a valid coordinate — the top-left corner. The old `if (!x && !y)`
+		// guard silently dropped genuine clicks/moves there; args are already
+		// length-validated above, so no origin filter is needed.
 		if (name.compare("cursorClickDown") == 0) {
 			m_handler->cursorClick(browserId, x, y, false);
 		}

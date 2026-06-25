@@ -316,25 +316,29 @@ void WebviewHandler::changeSize(int browserId, float a_dpi, int w, int h)
 {
     auto it = browser_map_.find(browserId);
     if (it != browser_map_.end()) {
-        it->second.dpi = a_dpi;
-        auto host = it->second.browser->GetHost();
-        // Force a genuine size DELTA, then settle on the real size. On single-process
-        // OSR (CEF 149) the browser only delivers a frame when WasResized observes a
-        // size *change* — a same-size WasResized (or Invalidate) is a no-op, which is
-        // why the webview renders black until the user manually resizes the window.
-        // Reporting h-1 then h guarantees a change every time, so the OSR browser
-        // paints without needing a real window resize. (The 1px intermediate size is
-        // never displayed; only the final h is.) The WebView size re-report loop in
-        // lib/src/webview.dart drives this a few times after creation so at least one
-        // delta lands once the renderer is ready to paint.
-        if (h > 1) {
-            it->second.width = w;
-            it->second.height = h - 1;
+        auto& info = it->second;
+        info.dpi = a_dpi;
+        auto host = info.browser->GetHost();
+        // OSR only delivers a frame when WasResized observes a size *change*; a
+        // same-size WasResized is a no-op, which is why the webview renders black
+        // until a real resize. So: when the size actually changed, ONE WasResized
+        // suffices — CEF sees the delta and paints. Only when the size is unchanged
+        // (e.g. the startup re-report loop in lib/src/webview.dart, which fires a few
+        // times so a paint lands once the renderer is ready) do we manufacture a 1px
+        // delta — report h-1 then h (the intermediate is never displayed) — to force
+        // a paint without needing a manual window resize.
+        if (info.width == w && info.height == h) {
+            if (h > 1) {
+                info.height = h - 1;
+                host->WasResized();
+                info.height = h;
+                host->WasResized();
+            }
+        } else {
+            info.width = w;
+            info.height = h;
             host->WasResized();
         }
-        it->second.width = w;
-        it->second.height = h;
-        host->WasResized();
     }
 }
 

@@ -15,6 +15,11 @@
     CVPixelBufferRef _pixelBuffer;
     CVPixelBufferRef _pixelBufferTemp;
     dispatch_semaphore_t _lock;
+    // CPU-path (onFrame) buffer pool — recycles CVPixelBuffers instead of
+    // allocating one per frame; recreated only when the frame size changes.
+    CVPixelBufferPoolRef _pool;
+    size_t _poolWidth;
+    size_t _poolHeight;
 }
 
 - (void)onFrame:(const void *)buffer width:(int64_t)width height:(int64_t)height;
